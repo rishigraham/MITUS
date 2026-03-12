@@ -1,0 +1,180 @@
+---
+title: "Updating Tabby2 for a new location" 
+date: "`r Sys.Date()`"
+output: rmarkdown::pdf_document
+geometry: margin=2cm
+header-includes:
+  - \pagenumbering{gobble}
+---
+
+This guide outlines the process of updating Tabby2 for a new location given the current 2025 architecture of the underlying model and webtool. 
+
+There are several key steps in this process. 
+
+  1. Data collection
+  2. Model fitting 
+  3. Generating data formatted for Tabby2
+  4. Uploading the data to Tabby2
+
+### Data collection
+
+In order to understand the data needed to fit the model, let's explore the data in the package. 
+
+```{r}
+### Load in the library
+library(MITUS) ## Make sure the calibration branch is installed on computer
+               ## I recommend forking and cloning the repository to your computer, 
+               ## then checking out the calibration branch, and installing it. 
+
+### Load in the necessary data ###
+model_load("CA") ## California specific data
+
+### Look at the data we've just loaded in
+names(Inputs) ## A list
+              ## Mostly demographic inputs that will be used on the R side to
+              ## create input parameters for the model.
+
+names(CalibDatState)  ## A list
+                      ## Demographic, TB natural history, TB surveillance data
+                      ## that the model is fit to.
+```
+
+
+### Key data to update 
+
+The model is currently calibrated from 1950-2020. We use this long historical period to try to get the background epidemiology and demography correct. However, we can shorten this period based on available data. 
+
+Demographic data 
+
+ - Population sizes for US and non-US born and age, current and historical  
+   (`Inputs$InitPop`, `CalibDatState$pop_00_19`)
+ - If there are any significant differences in background mortality or birth rates we may want to update those, but other wise we can continue using the national levels. (`Inputs$BgMort` , `Inputs$Births`)
+ - If expected to be significantly different from national percentages, estimated population experiencing homelessness each year. I would only worry about this IF TB among those experiencing homelessness is a key driver of TB in the city. (`CalibDatState$homeless_pop`)
+ 
+ Migration data 
+ 
+ - Average annual net migration by US and NUS born individuals in and out of the city (`Inputs$NetMigState`)
+ - Total annual migration by NUS born individuals into the city (from outside of the US) (`Inputs$ImmigInputs$TotByYear`)
+ - Age distribution of annual NUS born migrants into the city (from outside the US) (`Inputs$ImmigInputs$AgeDist`)
+ - TB Prevalence among annual NUS born migrants into the city (from outside the US). This input is a weird calculation that we can follow up on at a later date, but is mostly captured in `Inputs$ImmigInputs$PrevTrend25_34`
+ 
+ TB case data 
+ 
+ - Total annual TB cases (`CalibDatState$cases_yr_st`) 
+ - Annual TB cases by age and nativity (`CalibDatState$cases_yr_ag_nat_st`)
+ - Annual TB cases among NUSB persons in the United States less than 2 years (`CalibDatState$fb_recent_cases`)
+ - Annual TB cases among persons experiencing homelessness IF this is a priority area otherwise we can use national estimates (`CalibDatState$hr_cases`)
+ 
+TB deaths data 
+
+ - Annual deaths with TB (`CalibDatState$tb_deaths_st_yr`)
+ - Annual deaths with TB by age (`CalibDatState$tbdeaths_age_yr`)
+
+### Model fitting 
+
+Once the data have been compiled and formatted, we can begin model fitting. The first step here will be understanding how the model runs (with an existing data set.)
+
+### Running the model 
+
+```{r}
+### Check for the calibrated dataset; this is loaded with model_load()
+str(Par) # good! 
+
+### Call the function to run the model which is in process_simulations.R
+
+OutputsZint(samp_i=1, ### Which set of parameters from below dataframe to use. 
+            ParMatrix = Par, ### Parameters used to run the model 
+                             ### (typically as a result of calibration)
+            loc = "CA", ### Which location
+            output_month = 11, ### Model setting (ignore)
+            startyr=1950, ### Model start year (early allows for background epi)
+            endyr=2050,   ### Model end year
+            prg_chng=def_prgchng(Par[1,]), ## Options to control the program
+                                           ## changes seen in Tabby2 (screening rates, etc.)
+                                           ## Leave at default for understanding the baseline model
+            ttt_list=def_ttt(), ## How to program additional testing and treatment 
+                                ## seen in Tabby2 (screening rates, etc.)
+                                ## Leave at default for understanding the baseline model
+            care_cascade = def_care_cascade(), ### Options for alternative scenarios not shown in Tabby2
+                                               ## Leave at default for understanding the baseline model
+            Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0,Scen3=0, ### Various pre-defined scenarios for Tabby2 
+                                                                        ## Leave at 0 for understanding
+                                                                        ## the baseline model
+            par2020 = c(0.4232265, 0.3707595, 0.1984619, 1.1158255) ### Parameters for updates for COVID-19
+            ) -> CA_results
+```
+
+This code is first formatting the parameter data in R then passing these as arguments to the model code in C++. 
+
+The model formatting code is in `param_initial.R` 
+```{r}
+  ### COVID-19 adjustment parameters 
+  par2020 = c(0.4232265, 0.3707595, 0.1984619, 1.1158255)
+  names(par2020) <- c("Immig", "Dxt", "Trans", "CaseFat")
+  ### Parameter formatting function
+  prms <- param_init(P = Par[1,],
+                     loc = "CA",            
+                     prg_chng=def_prgchng(Par[1,]), ## Options to control the program
+                                           ## changes seen in Tabby2 (screening rates, etc.)
+                                           ## Leave at default for understanding the baseline model
+                     ttt_list=def_ttt(), ## How to program additional testing and treatment 
+                                         ## seen in Tabby2 (screening rates, etc.)
+                                         ## Leave at default for understanding the baseline model
+            Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0,Scen3=0, ### Various pre-defined scenarios for Tabby2 
+                                                                        ## Leave at 0 for understanding
+                                                                        ## the baseline model
+            immig = par2020["Immig"])
+
+```
+
+Once you understand the model run (and make any adjustments to the param_initial.R or tb_model.cpp files), you can start model fitting. 
+
+### Fitting the model 
+
+```{r, eval=FALSE}
+### Calling the optim function which is found in calib_optimfunction.R ###
+optim_b_st(df = StartVal_st, ### A dataframe of sampled starting values for calibration
+                             ### loaded in the model_load() function
+           samp_i = 1,       ### Which row of the dataframe to use
+                             ### You'll need to run multiple of these to confirm convergence
+           loc="CA",         ### What location you're running for -- loads the necessary data etc.
+           TB=1,             ### Do you want to include the TB likelihoods in the calibration
+                             ### Only set to 0 when trying to troubleshoot a bug, that is, do
+                             ### we still see the problem without trying to fit to TB.
+           n_cores=2         ### If you want to use multiple cores on a machine
+           )
+```
+
+The optim function is going to call the log likelihood functions which are found in `IMIS_functions_st.R`. IMIS is a sampling algorithm that will not be needed for Tabby2 work flow.
+
+`IMIS_functions_st.R` runs the model with sampled values and evaluates the individual log likelihoods and returns a cumulative log likelihood estimate based on the inputted sample values.
+
+If some data were unavailable or the year ranges differ, the function arguments in `IMIS_functions_st.R` will need to be updated. The underlying calibration functions in `calib_functions_st.r` might also need to be updated depending on how they are written (if they are agnostic to data length.) As this model was last calibrated in 2020, there will need to be updates to accomodate most recent data. 
+
+`calib_functions_st.r` contains each of the individual calibration functions that is used to evaluate the model fit to certain data. For example, the calibration function for the total annual notifications is below. 
+
+```{r, eval=FALSE}
+notif_tot_lLik_st <- function(V,st) {
+  notif_tot     <- CalibDatCases[["cases_yr_st"]][[st]][,2];
+  ### We use a vector of weights to increase the importance of the most recent data
+  ### These weights are read in during the model_load function call. 
+  wts2 <- wts; wts2[length(wts2)] <- wts2[length(wts2)]*2;
+  adj_1         <- sum((dnorm(notif_tot,notif_tot,notif_tot*0.1/1.96,log=T)*
+                          wts2[44:70])[is.na(notif_tot)==F  & notif_tot != 0])
+  #notif tot is in real scale must scale outputs up
+  sum((dnorm(notif_tot,V*1e6,notif_tot*0.1/1.96,log=T)*
+         wts2[44:70])[is.na(notif_tot)==F  & notif_tot != 0]) - adj_1
+}
+```
+
+To evaluate the results of your model fit, you can use some plots that are found in the `graphs_calib_st.R` script. These, of course, may need updates based on your calibration data.
+
+### Plotting the results 
+
+```{r}
+calib_graphs_st(df = CA_results, ### Currently using the results we generated in the model test run
+                loc = "CA", 
+                Par_list = list(prms[["Mpfast"]],prms[["Mrslow"]], prms[["rfast"]],prms[["rRecov"]]),
+                pdf=FALSE, 
+                cex.size=.7)
+```
