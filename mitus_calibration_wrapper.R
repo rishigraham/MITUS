@@ -90,21 +90,6 @@ main <- function() {
   cat("  TB likelihoods:", TB, "\n")
   cat("  Run optimization:", optimize, "\n\n")
 
-  # Set up MITUS environment
-  # MITUS is designed as an R package, so we need to install it
-  mitus_root <- code_dir
-  inst_dir <- file.path(mitus_root, "inst")
-
-  cat("Setting up MITUS package structure...\n")
-  if (!dir.exists(inst_dir)) {
-    dir.create(inst_dir, recursive = TRUE)
-  }
-
-  # Copy input data files to inst/ directory
-  # Configuration should provide files organized by location
-  # e.g., CA/CA_ModelInputs_*.rds, ST/ST_CalibDat_*.rds, etc.
-  copy_input_files(input_dir, inst_dir)
-
   # Install MITUS as a local package
   cat("\nInstalling MITUS package...\n")
   lib_path <- Sys.getenv("R_LIBS_USER")
@@ -119,7 +104,7 @@ main <- function() {
 
   # Load MITUS data and initialize model for this location
   cat("\nLoading MITUS model for location:", loc, "\n")
-  model_load(loc = loc)
+  model_load(loc = loc, data_dir = input_dir)
 
   cat("\nMITUS model loaded successfully\n")
   cat("Global variables set:\n")
@@ -246,29 +231,6 @@ main <- function() {
   write_json(results, results_file, pretty = TRUE, auto_unbox = TRUE)
 
   cat("\n=== Calibration wrapper completed successfully ===\n")
-}
-
-#' Copy input files from ResilientSims input directory to MITUS inst/ structure
-copy_input_files <- function(input_dir, inst_dir) {
-  input_files <- list.files(input_dir, recursive = TRUE, full.names = TRUE)
-
-  cat("Copying", length(input_files), "input files to MITUS inst/ directory...\n")
-
-  for (src_file in input_files) {
-    # Preserve directory structure relative to input_dir
-    rel_path <- sub(paste0(input_dir, "/"), "", src_file)
-    dest_file <- file.path(inst_dir, rel_path)
-
-    # Create destination directory if needed
-    dest_dir <- dirname(dest_file)
-    if (!dir.exists(dest_dir)) {
-      dir.create(dest_dir, recursive = TRUE)
-    }
-
-    # Copy file
-    file.copy(src_file, dest_file, overwrite = TRUE)
-    cat("  Copied:", rel_path, "\n")
-  }
 }
 
 # Run main function
