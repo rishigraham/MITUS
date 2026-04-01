@@ -25,25 +25,51 @@ year_month_to_idx<-function(year,month,base_year=1950){
   (year-base_year)*12+month
 }
 
-#' Find a location-specific data file in the MITUS package
+#' Find a location-specific data file
 #'
-#' Searches for RDS files matching {loc}_{filetype}[_.]*.rds in the package
-#' inst/ directory. Supports dated filenames (e.g., ST_CalibDat_04-20-22.rds)
-#' and plain filenames (e.g., SanDiego_CalibDat.rds). If multiple matches are
-#' found, returns the most recently modified file and issues a warning.
+#' Searches for RDS files matching {loc}_{filetype}[_.]*.rds. When data_dir
+#' is provided, searches there first (e.g., an external input directory).
+#' Falls back to the installed package inst/ directory via system.file().
+#' Supports dated filenames (ST_CalibDat_04-20-22.rds) and plain filenames
+#' (SanDiego_CalibDat.rds). If multiple matches, returns most recently modified.
 #'@name find_loc_file
 #'@param loc Location code (e.g., "CA", "SanDiego", "US", "ST")
 #'@param filetype File type pattern (e.g., "ModelInputs", "CalibDat")
 #'@param fallback_loc Optional fallback location to try if no file found
+#'@param data_dir Optional external directory to search before package inst/
 #'@param required If TRUE (default), stop with error when no file found
 #'@return Full file path to the matched RDS file
 #'@export
-find_loc_file<-function(loc,filetype,fallback_loc=NULL,required=TRUE){
-  loc_dir<-system.file(loc,package="MITUS")
-  if(nchar(loc_dir)>0){
-    # require underscore, dot, or end after filetype to avoid e.g. ParamInitdemo
-    pattern<-paste0("^",loc,"_?",filetype,"([_.].*)?\\.rds$")
-    files<-list.files(loc_dir,pattern=pattern,full.names=TRUE,ignore.case=TRUE)
+find_loc_file<-function(loc,filetype,fallback_loc=NULL,data_dir=NULL,required=TRUE){
+  pattern<-paste0("^",loc,"_?",filetype,"([_.].*)?\\.rds$")
+  fb_pattern<-if(!is.null(fallback_loc)) paste0("^",fallback_loc,"_?",filetype,"([_.].*)?\\.rds$")
+
+  # helper: search a directory for matching files
+  search_dir<-function(base_dir,prefix,pat){
+    d<-file.path(base_dir,prefix)
+    if(!dir.exists(d)) return(NULL)
+    files<-list.files(d,pattern=pat,full.names=TRUE,ignore.case=TRUE)
+    if(length(files)==0) return(NULL)
+    if(length(files)>1){
+      warning(paste0("Multiple files matched for ",prefix,"/",filetype,
+                     "; using most recently modified: ",basename(files[which.max(file.mtime(files))])))
+    }
+    files[which.max(file.mtime(files))]
+  }
+
+  # search external data_dir first (e.g., SIMULATOR_INPUT_DIR)
+  if(!is.null(data_dir)){
+    f<-search_dir(data_dir,loc,pattern)
+    if(!is.null(f)) return(f)
+    if(!is.null(fallback_loc)){
+      f<-search_dir(data_dir,fallback_loc,fb_pattern)
+      if(!is.null(f)) return(f)
+    }
+  }
+  # fall back to installed package inst/ directory
+  pkg_dir<-system.file(loc,package="MITUS")
+  if(nchar(pkg_dir)>0){
+    files<-list.files(pkg_dir,pattern=pattern,full.names=TRUE,ignore.case=TRUE)
     if(length(files)>0){
       if(length(files)>1){
         warning(paste0("Multiple files matched for ",loc,"/",filetype,
@@ -52,12 +78,10 @@ find_loc_file<-function(loc,filetype,fallback_loc=NULL,required=TRUE){
       return(files[which.max(file.mtime(files))])
     }
   }
-  # try fallback location (e.g., ST/ for shared state-level template files)
   if(!is.null(fallback_loc)){
-    fb_dir<-system.file(fallback_loc,package="MITUS")
-    if(nchar(fb_dir)>0){
-      pattern<-paste0("^",fallback_loc,"_?",filetype,"([_.].*)?\\.rds$")
-      files<-list.files(fb_dir,pattern=pattern,full.names=TRUE,ignore.case=TRUE)
+    fb_pkg_dir<-system.file(fallback_loc,package="MITUS")
+    if(nchar(fb_pkg_dir)>0){
+      files<-list.files(fb_pkg_dir,pattern=fb_pattern,full.names=TRUE,ignore.case=TRUE)
       if(length(files)>0){
         if(length(files)>1){
           warning(paste0("Multiple files matched for ",fallback_loc,"/",filetype,
@@ -71,7 +95,7 @@ find_loc_file<-function(loc,filetype,fallback_loc=NULL,required=TRUE){
     searched<-loc
     if(!is.null(fallback_loc)) searched<-paste0(loc," or ",fallback_loc)
     stop(paste0("Required data file not found: ",filetype," for location '",
-                searched,"'. Check that data files exist in inst/",loc,"/"))
+                searched,"'"))
   }
   return(NULL)
 }

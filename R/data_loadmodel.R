@@ -1,8 +1,9 @@
 #'loads data for the geography of interest
 #'@name model_load
 #'@param loc two letter postal abbreviation for states; US for national
+#'@param data_dir optional external data directory to search before package inst/
 #'@return void
-model_load<-function(loc="US"){
+model_load<-function(loc="US",data_dir=NULL){
 #' add loc as a global variable
 # loc<<-loc
   library(mnormt)
@@ -24,27 +25,27 @@ model_load<-function(loc="US"){
 #'load necessary datasets
 #'Model Input
 if (loc=="US"){
-  CalibDat<<-readRDS(find_loc_file("US", "CalibDat"))
+  CalibDat<<-readRDS(find_loc_file("US","CalibDat",data_dir=data_dir))
   CalibDatCases<<-CalibDat
   ## ParamInit and StartVal were replaced on 8/1 to clean up, but 07-07 are last calibrated version
-  ParamInit<<-as.data.frame(readRDS(find_loc_file("US", "ParamInit")))
-  StartVal<<-readRDS(find_loc_file("US", "StartVal"))
-  Inputs<<-readRDS(find_loc_file("US", "Inputs"))
-  Opt <<- readRDS(find_loc_file("US", "Optim", required = FALSE))
-  Par <<- readRDS(find_loc_file("US", "Param", required = FALSE))
+  ParamInit<<-as.data.frame(readRDS(find_loc_file("US","ParamInit",data_dir=data_dir)))
+  StartVal<<-readRDS(find_loc_file("US","StartVal",data_dir=data_dir))
+  Inputs<<-readRDS(find_loc_file("US","Inputs",data_dir=data_dir))
+  Opt <<- readRDS(find_loc_file("US","Optim",data_dir=data_dir,required=FALSE))
+  Par <<- readRDS(find_loc_file("US","Param",data_dir=data_dir,required=FALSE))
 } else {
-  CalibDat<<-CalibDatState<<-readRDS(find_loc_file(loc, "CalibDat", fallback_loc="ST"))
+  CalibDat<<-CalibDatState<<-readRDS(find_loc_file(loc,"CalibDat",fallback_loc="ST",data_dir=data_dir))
   CalibDatCases<<-CalibDat
-  ParamInit_st<<-ParamInit<<-readRDS(find_loc_file("ST", "ParamInit", fallback_loc=loc))
-  StartVal_st<<-StartVal<<-readRDS(find_loc_file("ST", "StartVal", fallback_loc=loc))
-  Inputs<<-readRDS(find_loc_file(loc, "ModelInputs"))
+  ParamInit_st<<-ParamInit<<-readRDS(find_loc_file("ST","ParamInit",fallback_loc=loc,data_dir=data_dir))
+  StartVal_st<<-StartVal<<-readRDS(find_loc_file("ST","StartVal",fallback_loc=loc,data_dir=data_dir))
+  Inputs<<-readRDS(find_loc_file(loc,"ModelInputs",data_dir=data_dir))
   # Load DeathByAge data once (used by calibration likelihood functions)
-  dba_file <- find_loc_file(loc, "deathbyAge", fallback_loc = "ST", required = FALSE)
-  if (!is.null(dba_file)) {
+  dba_file<-find_loc_file(loc,"deathbyAge",fallback_loc="ST",data_dir=data_dir,required=FALSE)
+  if(!is.null(dba_file)){
     DeathByAge <<- readRDS(dba_file)
   }
-  par_file <- find_loc_file(loc, "Param", required = FALSE)
-  if (!is.null(par_file)) {
+  par_file<-find_loc_file(loc,"Param",data_dir=data_dir,required=FALSE)
+  if(!is.null(par_file)){
     Par <<- readRDS(par_file)
   }
   #last input change was to update the RR active TB by age in immigrants
