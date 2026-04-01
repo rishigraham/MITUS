@@ -11,7 +11,14 @@ optimization.
 The function requires the use of the ParamInit Rdata file and the
 StartValues Rdata file.}
 \usage{
-optim_b_st(df, samp_i = 1, n_cores = 2, loc = "MA", TB = 1)
+optim_b_st(
+  df,
+  samp_i = 1,
+  n_cores = 2,
+  loc = "MA",
+  TB = 1,
+  calib_end_year = 2021
+)
 }
 \arguments{
 \item{df}{dataframe or matrix of starting values data frame}
@@ -21,6 +28,8 @@ optim_b_st(df, samp_i = 1, n_cores = 2, loc = "MA", TB = 1)
 \item{loc}{USPS code of state}
 
 \item{TB}{boolean for TB likelihoods}
+
+\item{calib_end_year}{end year for calibration targets}
 }
 \value{
 8 datasets from optimization loop

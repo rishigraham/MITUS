@@ -9,7 +9,7 @@ LIKELIHOOD FOR BORGDORFF, FEREBEE & SUTHERLAND ESTIMATES
 #' #' #' Total DEATHS 2015-2016 BY AGE
 #' #' Mort_dist 2016 dirchlet}
 \usage{
-llikelihoodZ_st(samp_i, ParMatrix, loc, TB = 1)
+llikelihoodZ_st(samp_i, ParMatrix, loc, TB = 1, calib_end_year = 2021)
 }
 \description{
 LTBI PREVALENCE BY AGE 2011, NUSB - index updated

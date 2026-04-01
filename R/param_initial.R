@@ -25,12 +25,14 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
   ##### DEFINE VARIABLES THAT WILL DETERMINE HOW LONG THE TIME               #####
   ##### DEPENDENT VARIABLES SHOULD BE                                        #####
   ################################################################################
-  month<-1801;
+  month<-year_month_to_idx(2100, 1); # total monthly time steps: Jan 1950 through Jan 2100
   intv_yr<-2022
+  # C++ model monthly index: ((yr-1949)*12)+1 — offset from year_month_to_idx by 12
+  # because C++ uses a 1949-based convention for intervention timing
   intv_m<-((intv_yr-1949)*12)+1
   prg_yr <-prg_chng["start_yr"]
   prg_m  <-((prg_yr-1949)*12)+1
-  ttt_month <-seq(((ttt_list[["StartYr"]]-1950)*12) + 6,((ttt_list[["EndYr"]]-1950)*12) + 6,12) #passed to c++ so one less than r iterator
+  ttt_month <-seq(year_month_to_idx(ttt_list[["StartYr"]], 6), year_month_to_idx(ttt_list[["EndYr"]], 6), 12) #passed to c++ so one less than r iterator
   #ttt_month <-ttt_month[-1]; ttt_month <- ttt_month - 1
   ################################################################################
   ##### CHECK IF ALL INTERVENTIONS OPTION IS SELECTED AND UPDATE INT VARS ########
@@ -75,15 +77,15 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
   ImmigInputs      <- Inputs[["ImmigInputs"]]
   ImmigInputs$PrevTrend25_34<-crude_rate(Inputs,loc)
   if (loc=="ND"){
-    ImmigInputs$PrevTrend25_34[61:71]<-seq(from=ImmigInputs$PrevTrend25_34[61],
-                                           to=ImmigInputs$PrevTrend25_34[61]*2,
+    ImmigInputs$PrevTrend25_34[year_to_idx(2010):year_to_idx(2020)]<-seq(from=ImmigInputs$PrevTrend25_34[year_to_idx(2010)],
+                                           to=ImmigInputs$PrevTrend25_34[year_to_idx(2010)]*2,
                                            length.out=11)
   }
   ##### Adjust immigration for the states with increasing TB trends          #####
   if (loc != "US") {
-  av_immig <- mean(ImmigInputs$TotByYear[51:69])
-  ImmigInputs$TotByYear[70:71]<-c(((ImmigInputs$TotByYear[69]+av_immig)/2), av_immig)
-  for (i in 72:151){
+  av_immig <- mean(ImmigInputs$TotByYear[year_to_idx(2000):year_to_idx(2018)])
+  ImmigInputs$TotByYear[year_to_idx(2019):year_to_idx(2020)]<-c(((ImmigInputs$TotByYear[year_to_idx(2018)]+av_immig)/2), av_immig)
+  for (i in year_to_idx(2021):year_to_idx(2100)){
     ImmigInputs$TotByYear[i]<-ImmigInputs$TotByYear[i-1]*1.005
   }
   # Inputs$ImmigInputs <<- ImmigInputs
@@ -163,12 +165,12 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
 
   ######################         IMMIGRATION             ########################
   ######################         OVERALL IMM.            ########################
-  TotImmig0       <- (c(Inputs$ImmigInputs[[1]][1:151])+c(rep(0,71),cumsum(rep(PV["ImmigVolFut"],80))))/12*PV["ImmigVol"]
+  TotImmig0       <- (c(Inputs$ImmigInputs[[1]][year_to_idx(1950):year_to_idx(2100)])+c(rep(0,year_to_idx(2020)),cumsum(rep(PV["ImmigVolFut"],80))))/12*PV["ImmigVol"]
   if (loc=="ND"){
-    TotImmig0[61:71]<-seq(from=TotImmig0[61], to=TotImmig0[61]*3, length.out=11)
+    TotImmig0[year_to_idx(2010):year_to_idx(2020)]<-seq(from=TotImmig0[year_to_idx(2010)], to=TotImmig0[year_to_idx(2010)]*3, length.out=11)
   }
-  TotImmAge0      <-matrix(0,151,11)
-  for (i in 1:151){
+  TotImmAge0      <-matrix(0,year_to_idx(2100),11)
+  for (i in 1:year_to_idx(2100)){
     for (j in 1:11){
       TotImmAge0[i,j]   <- TotImmig0[i]*as.matrix(ImmigInputs$AgeDist[j,i])
     } }
@@ -179,18 +181,18 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
   }
   if(immig != 99){
     #Hold reduction through December 2021
-    TotImmAge[843:864,]<-TotImmAge[843:864,]-(TotImmAge[843:864,]*immig);
+    TotImmAge[year_month_to_idx(2020,3):year_month_to_idx(2021,12),]<-TotImmAge[year_month_to_idx(2020,3):year_month_to_idx(2021,12),]-(TotImmAge[year_month_to_idx(2020,3):year_month_to_idx(2021,12),]*immig);
     # Bring up immigration to 50% by end of 2022 (smoothly)
     for (agegrp in 1:ncol(TotImmAge)){
-      TotImmAge[865:888,agegrp] <- seq(TotImmAge[864,agegrp],TotImmAge[842,agegrp], length.out=24)
+      TotImmAge[year_month_to_idx(2022,1):year_month_to_idx(2023,12),agegrp] <- seq(TotImmAge[year_month_to_idx(2021,12),agegrp],TotImmAge[year_month_to_idx(2020,2),agegrp], length.out=24)
     }
   }
   ######################           LTBI IMM.             ########################
-  PrevTrend25_340l <- c(ImmigInputs[["PrevTrend25_34"]][1:71]^(exp(PV["TunLtbiTrend"]))*ImmigInputs[["PrevTrend25_34"]][71]^(1-exp(PV["TunLtbiTrend"])),
-                        ImmigInputs[["PrevTrend25_34"]][72:151]*(PV["ImmigPrevFutLat"]/0.99)^(1:80))
+  PrevTrend25_340l <- c(ImmigInputs[["PrevTrend25_34"]][year_to_idx(1950):year_to_idx(2020)]^(exp(PV["TunLtbiTrend"]))*ImmigInputs[["PrevTrend25_34"]][year_to_idx(2020)]^(1-exp(PV["TunLtbiTrend"])),
+                        ImmigInputs[["PrevTrend25_34"]][year_to_idx(2021):year_to_idx(2100)]*(PV["ImmigPrevFutLat"]/0.99)^(1:80))
   PrevTrend25_341l <-   PrevTrend25_340l
   PrevTrend25_34_ls  <- SmoCurve(PrevTrend25_341l)
-  PrevTrend25_34_ls <- PrevTrend25_34_ls/PrevTrend25_34_ls[(2011-1950)*12+6]
+  PrevTrend25_34_ls <- PrevTrend25_34_ls/PrevTrend25_34_ls[year_month_to_idx(2011, 6)]
   # plot(PrevTrend25_34_ls[ (65*12):(75*12)], type="l")
   ImmLat          <- matrix(NA,length(PrevTrend25_34_ls),11)
 
@@ -198,8 +200,8 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
   ######################         ACTIVE TB IMM.           ########################
   # PrevTrend25_340a <- c(ImmigInputs[["PrevTrend25_34"]][1:69]^exp(PV["TunActTrend"])*ImmigInputs[["PrevTrend25_34"]][69]^exp((1-PV["TunActTrend"])),
 
-  PrevTrend25_340a <- c(ImmigInputs[["PrevTrend25_34"]][1:71]^(exp(PV["TunActTrend"]))*ImmigInputs[["PrevTrend25_34"]][71]^(1-exp(PV["TunActTrend"])),
-                        ImmigInputs[["PrevTrend25_34"]][72:151]*(PV["ImmigPrevFutAct"]/0.99)^(1:80))
+  PrevTrend25_340a <- c(ImmigInputs[["PrevTrend25_34"]][year_to_idx(1950):year_to_idx(2020)]^(exp(PV["TunActTrend"]))*ImmigInputs[["PrevTrend25_34"]][year_to_idx(2020)]^(1-exp(PV["TunActTrend"])),
+                        ImmigInputs[["PrevTrend25_34"]][year_to_idx(2021):year_to_idx(2100)]*(PV["ImmigPrevFutAct"]/0.99)^(1:80))
 
   PrevTrend25_34a  <- SmoCurve(PrevTrend25_340a)
 
@@ -564,7 +566,7 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
 
   #add in a temporary change to provider delay
   if (delay == 1){
-    DelaySp[841:859]<-8*DelaySp[841:859]
+    DelaySp[year_month_to_idx(2020,1):year_month_to_idx(2021,7)]<-8*DelaySp[year_month_to_idx(2020,1):year_month_to_idx(2021,7)]
   }
 
   if (prg_chng["tb_tim2tx_frc"] !=100){
@@ -578,7 +580,7 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
 
   #######################         ATTENDANCE RATE           ########################
   n_Spln   <- 5;
-  n_Stps   <- 2010-1950+1;
+  n_Stps   <- year_to_idx(2010);
   dif_pen   <- 1 # quadratic spline
   # Working...
   x1    <- seq(1,n_Stps);
@@ -592,8 +594,8 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
   }
 
   DxPri          <- (seq(0.5,4,length.out=5)-0.75)*3.5/2.626+0.25  # Prior from 0.5 t to 4.0
-  rDx            <- c(SpMat%*%(DxPri+c(PV["Dx1"],PV["Dx2"],PV["Dx3"],PV["Dx4"],PV["Dx5"])),62:151)
-  rDx[62:151]    <- rDx[61] + (rDx[61]-rDx[60])*cumsum((0.75^(1:90)))
+  rDx            <- c(SpMat%*%(DxPri+c(PV["Dx1"],PV["Dx2"],PV["Dx3"],PV["Dx4"],PV["Dx5"])),year_to_idx(2011):year_to_idx(2100))
+  rDx[year_to_idx(2011):year_to_idx(2100)]    <- rDx[year_to_idx(2010)] + (rDx[year_to_idx(2010)]-rDx[year_to_idx(2009)])*cumsum((0.75^(1:90)))
   rDxt0          <- SmoCurve(rDx)/12;
   rDxt1          <- cbind(rDxt0,rDxt0)
   rDxt1<-rDxt1[1:month,]
@@ -626,11 +628,11 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
 
   ###########################        REGIMEN DEFAULT       ##########################
 
-  rDef0         <- rep(NA,151)
-  rDef0[1:30]   <- PV["TxDefEarly"]
-  rDef0[44:63]  <- ORAdd(TxInputs[[1]][,2],PV["TunTxDef"])
-  rDef0[64:151] <- rDef0[63]
-  rDef1         <- predict(smooth.spline(x=c(1950:1979,1993:2100),y=rDef0[-(31:43)],spar=0.4),x=1950:2100)$y
+  rDef0         <- rep(NA,year_to_idx(2100))
+  rDef0[year_to_idx(1950):year_to_idx(1979)]   <- PV["TxDefEarly"]
+  rDef0[year_to_idx(1993):year_to_idx(2012)]  <- ORAdd(TxInputs[[1]][,2],PV["TunTxDef"])
+  rDef0[year_to_idx(2013):year_to_idx(2100)] <- rDef0[year_to_idx(2012)]
+  rDef1         <- predict(smooth.spline(x=c(1950:1979,1993:2100),y=rDef0[-(year_to_idx(1980):year_to_idx(1992))],spar=0.4),x=1950:2100)$y
   rDeft         <- SmoCurve(rDef1)/12;
   rDeft<-rDeft[1:month]
 
@@ -644,11 +646,11 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
 
   #########################        REGIMEN QUALITY       ##########################
 
-  TxQual0         <- rep(NA,151)
-  TxQual0[1:30]   <- PV["TxQualEarly"]
-  TxQual0[44:62]  <- ORAdd(TxInputs[[2]][,2],PV["TunTxQual"])
-  TxQual0[63:151] <- TxQual0[62]
-  TxQual1         <- predict(smooth.spline(x=c(1950:1979,1993:2100),y=TxQual0[-(31:43)],spar=0.4),x=1950:2100)$y
+  TxQual0         <- rep(NA,year_to_idx(2100))
+  TxQual0[year_to_idx(1950):year_to_idx(1979)]   <- PV["TxQualEarly"]
+  TxQual0[year_to_idx(1993):year_to_idx(2011)]  <- ORAdd(TxInputs[[2]][,2],PV["TunTxQual"])
+  TxQual0[year_to_idx(2012):year_to_idx(2100)] <- TxQual0[year_to_idx(2011)]
+  TxQual1         <- predict(smooth.spline(x=c(1950:1979,1993:2100),y=TxQual0[-(year_to_idx(1980):year_to_idx(1992))],spar=0.4),x=1950:2100)$y
   TxQualt         <- SmoCurve(TxQual1);
   TxQualt<-TxQualt[1:month]
 
@@ -677,11 +679,11 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
 
   #### #### #### INT 4 #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
   ## Tx quality
-  TxQual0         <- rep(NA,151)
-  TxQual0[1:30]   <- PV["TxQualEarly"]
-  TxQual0[44:62]  <- ORAdd(TxInputs[[2]][,2],PV["TunTxQual"])
-  TxQual0[63:151] <- TxQual0[62]
-  TxQual1         <- predict(smooth.spline(x=c(1950:1979,1993:2100),y=TxQual0[-(31:43)],spar=0.4),x=1950:2100)$y
+  TxQual0         <- rep(NA,year_to_idx(2100))
+  TxQual0[year_to_idx(1950):year_to_idx(1979)]   <- PV["TxQualEarly"]
+  TxQual0[year_to_idx(1993):year_to_idx(2011)]  <- ORAdd(TxInputs[[2]][,2],PV["TunTxQual"])
+  TxQual0[year_to_idx(2012):year_to_idx(2100)] <- TxQual0[year_to_idx(2011)]
+  TxQual1         <- predict(smooth.spline(x=c(1950:1979,1993:2100),y=TxQual0[-(year_to_idx(1980):year_to_idx(1992))],spar=0.4),x=1950:2100)$y
   TxQualt        <- SmoCurve(TxQual1);
   TxQualt         <-TxQualt[1:month]
   RRcurDef      <- PV["RRcurDef"]

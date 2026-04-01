@@ -14,9 +14,6 @@ Imis2(
   OptInit
 )
 }
-\value{
-
-}
 \description{
 This function samples the prior using a random normal generation.
 }

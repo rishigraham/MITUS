@@ -11,23 +11,41 @@ model_load<-function(loc="US"){
   library(Rcpp)
   library(MCMCpack)
   library(MASS)
+
+  loc_info <- resolve_location(loc)
+  if (is.null(loc_info) && loc != "US") {
+    stop(paste0("Location '", loc, "' not found in stateID or county_ID.csv"))
+  }
+  # Register county locations in stateID so downstream st-based lookups work
+  if (!is.null(loc_info) && loc_info$loc_type == "county") {
+    register_location(loc_info)
+  }
+
 #'load necessary datasets
 #'Model Input
 if (loc=="US"){
-  CalibDat<<-readRDS(system.file("US/US_CalibDat_2022-04-13.rds", package="MITUS"))
+  CalibDat<<-readRDS(find_loc_file("US", "CalibDat"))
+  CalibDatCases<<-CalibDat
   ## ParamInit and StartVal were replaced on 8/1 to clean up, but 07-07 are last calibrated version
-  ParamInit<<-as.data.frame(readRDS(system.file("US/US_ParamInit_2022-08-01.rds", package="MITUS")))
-  StartVal<<-readRDS(system.file("US/US_StartVal_2022-08-01.rds", package="MITUS"))
-  Inputs<<-readRDS(system.file("US/US_Inputs_08-31-20.rds", package="MITUS"))
-  Opt <<- readRDS(system.file("US/US_Optim_all_25_0707.rds", package="MITUS"))
-  Par <<- readRDS(system.file("US/US_Param_all_25_0707.rds", package="MITUS"))
+  ParamInit<<-as.data.frame(readRDS(find_loc_file("US", "ParamInit")))
+  StartVal<<-readRDS(find_loc_file("US", "StartVal"))
+  Inputs<<-readRDS(find_loc_file("US", "Inputs"))
+  Opt <<- readRDS(find_loc_file("US", "Optim", required = FALSE))
+  Par <<- readRDS(find_loc_file("US", "Param", required = FALSE))
 } else {
-  CalibDat<<-CalibDatState<<-readRDS(system.file("ST/ST_CalibDat_04-20-22.rds", package="MITUS"))
-  ParamInit_st<<-ParamInit<<-readRDS(system.file("ST/ST_ParamInit_2022-07-08.rds", package="MITUS"))
-  StartVal_st<<-StartVal<<-readRDS(system.file("ST/ST_StartVal_2022-07-08.rds", package="MITUS"))
-  Inputs<<-readRDS(system.file(paste0(loc,"/",loc,"_ModelInputs_11-12-21.rds"), package="MITUS"))
-  if (loc == "CA"){
-    Par <<- readRDS(system.file(paste0(loc,"/",loc,"_Param_all_15_0708.rds"), package="MITUS"))
+  CalibDat<<-CalibDatState<<-readRDS(find_loc_file(loc, "CalibDat", fallback_loc="ST"))
+  CalibDatCases<<-CalibDat
+  ParamInit_st<<-ParamInit<<-readRDS(find_loc_file("ST", "ParamInit", fallback_loc=loc))
+  StartVal_st<<-StartVal<<-readRDS(find_loc_file("ST", "StartVal", fallback_loc=loc))
+  Inputs<<-readRDS(find_loc_file(loc, "ModelInputs"))
+  # Load DeathByAge data once (used by calibration likelihood functions)
+  dba_file <- find_loc_file(loc, "deathbyAge", fallback_loc = "ST", required = FALSE)
+  if (!is.null(dba_file)) {
+    DeathByAge <<- readRDS(dba_file)
+  }
+  par_file <- find_loc_file(loc, "Param", required = FALSE)
+  if (!is.null(par_file)) {
+    Par <<- readRDS(par_file)
   }
   #last input change was to update the RR active TB by age in immigrants
 }
@@ -55,7 +73,7 @@ if (loc=="US"){
   ImptWeights <- LgtCurveY2(2000,2019,0.95)+0.05
   names(ImptWeights) <- 1950:2019
   wts <<- ImptWeights
-  W <- wts[44:69];  W["2016"] <- 4
+  W <- wts[year_to_idx(1993):year_to_idx(2018)];  W["2016"] <- 4
   wtZ <<-W
 
   #creation of background parameters
@@ -87,21 +105,25 @@ model_load_demo<-function(loc="US"){
   library(Rcpp)
   library(MCMCpack)
   library(MASS)
+
+  loc_info <- resolve_location(loc)
+  if (is.null(loc_info) && loc != "US") {
+    stop(paste0("Location '", loc, "' not found in stateID or county_ID.csv"))
+  }
+
   #'lazy load necessary datasets
   #'Model Input
   if (loc=="US"){
-    CalibDat<<-readRDS(system.file("US/US_CalibDat_03-06-19.rds", package="MITUS"))
-
-    # CalibDat<<-readRDS(system.file("US/US_CalibDat_02-14-19.rds", package="MITUS"))
-    ParamInit_demo<<-readRDS(system.file("US/US_ParamInitdemo_2019-02-21.rds", package="MITUS"))
-    StartVal_demo<<-readRDS(system.file("US/US_StartValdemo_2019-02-21.rds", package="MITUS"))
-    Inputs<<-readRDS(system.file("US/US_Inputs_01-24-19.rds", package="MITUS"))
+    CalibDat<<-readRDS(find_loc_file("US", "CalibDat"))
+    ParamInit_demo<<-readRDS(find_loc_file("US", "ParamInitdemo"))
+    StartVal_demo<<-readRDS(find_loc_file("US", "StartValdemo"))
+    Inputs<<-readRDS(find_loc_file("US", "Inputs"))
 
   } else {
-    CalibDat<<-CalibDatState<<-readRDS(system.file("ST/ST_CalibDat_01-24-19.rds", package="MITUS"))
-    ParamInit_st<<-ParamInit<<-readRDS(system.file("ST/ST_ParamInit_02-09-19.rds", package="MITUS"))
-    StartVal_st<<-StartVal<<-readRDS(system.file("ST/ST_StartVal_02-09-19.rds", package="MITUS"))
-    Inputs<<-readRDS(system.file(paste0(loc,"/",loc,"_ModelInputs_01-24-19.rds"), package="MITUS"))
+    CalibDat<<-CalibDatState<<-readRDS(find_loc_file(loc, "CalibDat", fallback_loc="ST"))
+    ParamInit_st<<-ParamInit<<-readRDS(find_loc_file("ST", "ParamInit"))
+    StartVal_st<<-StartVal<<-readRDS(find_loc_file("ST", "StartVal"))
+    Inputs<<-readRDS(find_loc_file(loc, "ModelInputs"))
   }
 
   if (loc=="US")

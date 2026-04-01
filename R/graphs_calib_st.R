@@ -21,7 +21,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   ### ### ### ### ### ###   TOTAL POP EACH DECADE, BY US/FB   ### ### ### ### ### ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
-  V  <- cbind(df[1:71,30], df[1:71,31]+df[1:71,32])*1e6
+  V  <- cbind(df[year_to_idx(1950):year_to_idx(2020),30], df[year_to_idx(1950):year_to_idx(2020),31]+df[year_to_idx(1950):year_to_idx(2020),32])*1e6
   #read in decade based stuff
   tot_pop<- CalibDatState[["pop_50_10"]][[st]]
   #get the FB pop from the decade
@@ -67,7 +67,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   ### ### ### ### ### ### TOTAL POP AGE DISTRIBUTION 2014  ### ### ### ### ### ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
-  V  <- cbind(t(df[65,33:43]), t(df[65,44:54]))
+  V  <- cbind(t(df[year_to_idx(2014),33:43]), t(df[year_to_idx(2014),44:54]))
   V3  <- V[-11,]
   V3[10,] <- V3[10,]+V[11,]
   pop_ag_11_170  <- CalibDatState[["pop_00_17"]][[st]][,c(1,2,20)]
@@ -93,7 +93,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
          pch=c(15,15,19),lwd=c(NA,NA,1),lty=c(NA,NA,3),col=c("lightblue","pink",1),bg="white",pt.cex=c(1.8,1.8,0.3))
 
   ### ### ### Population HR DISTRIBUTION 1993-2013  ### ### ### ### ### ###
-  V   <- df[44:69,29]
+  V   <- df[year_to_idx(1993):year_to_idx(2018),29]
   us_homeless<-CalibDat$homeless_pop[[st]]
   plot(0,0,ylim=c(0,max(V,us_homeless)*1.2),xlim=c(1993,2018),xlab="",ylab="",axes=F)
   axis(1);axis(2,las=2);box()
@@ -110,7 +110,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   ### ### ### ### ### ###   TOTAL FB POP EACH DECADE, BY REC/LONG   ### ### ### ### ### ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
-  # V  <- cbind(df[1:68,31],df[1:68,32])
+  # V  <- cbind(df[year_to_idx(1950):year_to_idx(2017),31],df[year_to_idx(1950):year_to_idx(2017),32])
 #
 #   plot(0,0,ylim=c(min((V*.5),0),max(rowSums(V))*1.25),xlim=c(1950,2017),xlab="",ylab="",axes=F)
 #   axis(1);axis(2,las=2);box()
@@ -237,9 +237,10 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   ### ### ### ### ### ###   TOTAL MORT EACH DECADE, BY US/FB  ### ### ### ### ### ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
   # V  <- cbind(rowSums(df[30:67,255:265]), rowSums(df[30:67,266:276]))*1e6
-  V1c <- rowSums(df[1:67,121:131])
+  V1c <- rowSums(df[year_to_idx(1950):year_to_idx(2016),121:131])
   #1979-2016 total deaths
-  ST_deaths_tot <- readRDS(system.file("ST/STdeathbyAge.rds",package="MITUS"))[[st]][,c(1,12)]
+  dba_loc <- DeathByAge[[loc]]
+  ST_deaths_tot <- dba_loc[,c(1,12)]
   ST_deaths_tot[,2]<-ST_deaths_tot[,2]/1e6
   plot(1,1,ylim=c(min(V1c,ST_deaths_tot[,2])*.5,max(V1c,ST_deaths_tot[,2])*2),xlim=c(1950,2016),xlab="",ylab="",axes=F)
   axis(1);axis(2,las=2);box()
@@ -256,12 +257,12 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   # ### ### ### ### ### ###   TOTAL MORT AGE DISTRIBUTION 2017  ### ### ### ### ### ###
   # ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
-  V  <- cbind((df[68,255:265])+(df[68,266:276]))
+  V  <- cbind((df[year_to_idx(2017),255:265])+(df[year_to_idx(2017),266:276]))
   V1<-V[-11]
   V1[10] <- V1[10]+V[11]
   V2<-V1/sum(V1)
 
-  tda <- readRDS(system.file("ST/STdeathbyAge.rds",package="MITUS"))[[st]][48,-c(1,12)]
+  tda <- dba_loc[48,-c(1,12)]
   tda<-tda/sum(tda)
   plot(0,0,ylim=c(min(range(V2,tda))*.5,max(range(V2,tda))*1.25),xlim=c(0.6,10.4),xlab="",ylab="",axes=F,col=NA)
   axis(1,1:10,paste(c("0-4","5-14","15-24","25-34","35-44","45-54","55-64","65-74","75-84","85+"),"\nyears",sep=""),tick=F,cex.axis=0.75)
@@ -311,7 +312,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   # graph of total diagnosed cases 5 year bands
   # by total population, US born population, and non-US born population
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-  Va <- df[44:71,"NOTIF_ALL"]+df[44:71,"NOTIF_MORT_ALL"] #total population
+  Va <- df[year_to_idx(1993):year_to_idx(2020),"NOTIF_ALL"]+df[year_to_idx(1993):year_to_idx(2020),"NOTIF_MORT_ALL"] #total population
 
   # tot_cases<-rowSums(CalibDatState$cases_yr_ag_nat_st_5yr[[st]][1:5,5:14])+rowSums(CalibDatState$cases_yr_ag_nat_st_5yr[[st]][6:10,5:14])
   tot_cases<-CalibDatState[["cases_yr_st"]][[st]][,2]
@@ -338,8 +339,8 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   # graph of total diagnosed cases 5 year bands
   # by total population, US born population, and non-US born population
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-  Vu <- df[47:71,"NOTIF_US"]+df[47:71,"NOTIF_MORT_US"]   #US born population
-  Vn <- df[47:71,"NOTIF_F1"]+df[47:71,"NOTIF_F2"]+df[47:71,"NOTIF_MORT_F1"]+df[47:71,"NOTIF_MORT_F2"]   #non-US born population
+  Vu <- df[year_to_idx(1996):year_to_idx(2020),"NOTIF_US"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_US"]   #US born population
+  Vn <- df[year_to_idx(1996):year_to_idx(2020),"NOTIF_F1"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_F2"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_F1"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_F2"]   #non-US born population
   #remove create the 85+ age band
   Vn2<-Vu2<-rep(0,5)
   # Va2[1]<-sum(Va[1:5]);Va2[2]<-sum(Va[6:10]);Va2[3]<-sum(Va[11:15]); Va2[4]<-sum(Va[16:20]); Va2[5]<-sum(Va[21:25])
@@ -406,7 +407,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   #Percent of Non-US Born Cases from Recent Immigrant Population
   #updated for 5 year data
   #check this plot and otis
-  V <- cbind(df[47:71,"NOTIF_F1"]+df[47:71,"NOTIF_MORT_F1"],df[47:71,"NOTIF_F2"]+df[47:71,"NOTIF_MORT_F2"])
+  V <- cbind(df[year_to_idx(1996):year_to_idx(2020),"NOTIF_F1"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_F1"],df[year_to_idx(1996):year_to_idx(2020),"NOTIF_F2"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_F2"])
   #create a five year band for this data
   V0<-rep(0,5)
   V0[1]<-sum(V[1:5,1])/sum(V[1:5,]);V0[2]<-sum(V[6:10,1])/sum(V[6:10,]);
@@ -440,7 +441,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   #Age distribution of Cases
   #0-24 yrs, 25-44 yrs, 45-64 yrs, 65+ yrs
   #updated for 5 year data
-  V   <- (df[47:71,136:146]+df[47:71,189:199])*1e6
+  V   <- (df[year_to_idx(1996):year_to_idx(2020),136:146]+df[year_to_idx(1996):year_to_idx(2020),189:199])*1e6
   V2  <- V[,-11]
   V2[,10] <- V2[,10]+V[,11]
   #create 5 year bands
@@ -485,7 +486,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   #Age Distribution of TB Cases in Percentages
   #updated for 5 year data
 
-    V   <- (df[47:71,136:146]+df[47:71,189:199])*1e6
+    V   <- (df[year_to_idx(1996):year_to_idx(2020),136:146]+df[year_to_idx(1996):year_to_idx(2020),189:199])*1e6
     V2  <- V[,-11]
     V2[,10] <- V2[,10]+V[,11]
     V2<-colSums(V2)
@@ -540,10 +541,10 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
     ################################################################################
     ### ### ### CASES HR DISTRIBUTION 1993-2013  ### ### ### ### ### ###
 
-    X   <- (df[47:71,151]+df[47:71,204])
+    X   <- (df[year_to_idx(1996):year_to_idx(2020),151]+df[year_to_idx(1996):year_to_idx(2020),204])
     Xa  <- rbind(sum(X[1:5]),sum(X[6:10]), sum(X[11:15]),
                  sum(X[16:20]), sum(X[21:25]))
-    W<-(df[47:71,151]+df[47:71,150]+df[47:71,204]+df[47:71,203])
+    W<-(df[year_to_idx(1996):year_to_idx(2020),151]+df[year_to_idx(1996):year_to_idx(2020),150]+df[year_to_idx(1996):year_to_idx(2020),204]+df[year_to_idx(1996):year_to_idx(2020),203])
     Wa  <- rbind(sum(W[1:5]),sum(W[6:10]), sum(W[11:15]),
                  sum(W[16:20]), sum(W[21:25]))
 
@@ -564,7 +565,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   ###############################################################################
     ### Recent infection
     #colnames(M)
-    Vall <- (df[71,172:187]/df[71,156:171])
+    Vall <- (df[year_to_idx(2020),172:187]/df[year_to_idx(2020),156:171])
     plot(-1,0,ylim=c(0.02,1),xlim=c(0.5,16.5),xlab="",ylab="",axes=F)
     axis(2,las=2);box()
 
@@ -583,7 +584,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
            pt.cex=c(1,2),col=c("black","forestgreen"),bg="white",cex=cex.size)
   ################################################################################
     ### ### ### LTBI INITIATIONS 1993-2011 Distribution ### ### ### ### ### ###
-    v13  <- df[43:65,153:154]/df[43:65,152]
+    v13  <- df[year_to_idx(1992):year_to_idx(2014),153:154]/df[year_to_idx(1992):year_to_idx(2014),152]
     TLTBI_dist<-CalibDat$TLTBI_dist[1:2]
     tltbi_vol<-CalibDat$TLTBI_volume[[st]]
     plot(1,1,ylim=c(0.001,1)*100,xlim=c(1992,2015),xlab="",ylab="",axes=F,log="y")
@@ -599,7 +600,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
            pch=c(15,15,19,NA),lwd=c(NA,NA,NA,2),col=c("red3",4,1,1),bg="white",pt.cex=c(1.8,1.8,0.8,NA),cex=cex.size)
     ################################################################################
   # LTBI Outcomes 1993-2014
-  V   <- df[56:66,132:134]
+  V   <- df[year_to_idx(2005):year_to_idx(2015),132:134]
   Vdisc <- V[,2]/rowSums(V)
   Vdead <- V[,3]/rowSums(V)
   tx_outcomes      <- CalibDatState$tx_outcomes[13:23,2:3]*100
@@ -630,7 +631,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   ################################################################################
   #LTBI Prevalance by Age in 2011, US born
 
-  V  <- cbind(t(df[62,55:65]),t(df[62,33:43]-df[62,55:65]))
+  V  <- cbind(t(df[year_to_idx(2011),55:65]),t(df[year_to_idx(2011),33:43]-df[year_to_idx(2011),55:65]))
   colnames(V) <- c("LTBI", "No-LTBI")
 
   pIGRA<-1
@@ -690,7 +691,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   ################################################################################
   #LTBI Prevalance by Age in 2011, non-US born
 
-  V  <- cbind(t(df[62,66:76]),t(df[62,44:54]-df[62,66:76]))
+  V  <- cbind(t(df[year_to_idx(2011),66:76]),t(df[year_to_idx(2011),44:54]-df[year_to_idx(2011),66:76]))
   colnames(V) <- c("LTBI", "No-LTBI")
 
   pIGRA<-1
@@ -736,7 +737,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
 
   ################################################################################
   # Age Distribution of TB Deaths 1999-2014
-  V  <- df[50:69,227:237]
+  V  <- df[year_to_idx(1999):year_to_idx(2018),227:237]
   V2 <- V[,-11]; V2[,10] <- V[,10]+V[,11]
   V3 <- colSums(V2)*1e6
   V3 <- V3/sum(V3)*100
@@ -767,7 +768,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   ################################################################################
   # total tb deaths over time 1999-2016
   #tb deaths 2006-2016
-  V   <- rowSums(df[59:71,227:237])*1e6
+  V   <- rowSums(df[year_to_idx(2008):year_to_idx(2020),227:237])*1e6
   tb_death_tot<-as.numeric(CalibDatState$tbdeaths[[st]][10:20,3])
   tb_death_tot[is.na(tb_death_tot)]<-0
 
@@ -812,7 +813,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   ### ### ### ### ### ###   TOTAL POP EACH DECADE, BY US/FB   ### ### ### ### ### ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
-  V  <- cbind(df[1:71,30], df[1:71,31]+df[1:71,32])*1e6
+  V  <- cbind(df[year_to_idx(1950):year_to_idx(2020),30], df[year_to_idx(1950):year_to_idx(2020),31]+df[year_to_idx(1950):year_to_idx(2020),32])*1e6
   #read in decade based stuff
   tot_pop<- CalibDatState[["pop_50_10"]][[st]]
   #get the FB pop from the decade
@@ -858,7 +859,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   ### ### ### ### ### ### TOTAL POP AGE DISTRIBUTION 2014  ### ### ### ### ### ###
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
 
-  V  <- cbind(t(df[65,33:43]), t(df[65,44:54]))
+  V  <- cbind(t(df[year_to_idx(2014),33:43]), t(df[year_to_idx(2014),44:54]))
   V3  <- V[-11,]
   V3[10,] <- V3[10,]+V[11,]
   pop_ag_11_170  <- CalibDatState[["pop_00_17"]][[st]][,c(1,2,20)]
@@ -886,7 +887,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   # graph of total diagnosed cases 5 year bands
   # by total population, US born population, and non-US born population
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-  Va <- df[44:71,"NOTIF_ALL"]+df[44:71,"NOTIF_MORT_ALL"] #total population
+  Va <- df[year_to_idx(1993):year_to_idx(2020),"NOTIF_ALL"]+df[year_to_idx(1993):year_to_idx(2020),"NOTIF_MORT_ALL"] #total population
 
   # tot_cases<-rowSums(CalibDatState$cases_yr_ag_nat_st_5yr[[st]][1:5,5:14])+rowSums(CalibDatState$cases_yr_ag_nat_st_5yr[[st]][6:10,5:14])
   tot_cases<-CalibDatState[["cases_yr_st"]][[st]][,2]
@@ -913,8 +914,8 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   # graph of total diagnosed cases 5 year bands
   # by total population, US born population, and non-US born population
   ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ###
-  Vu <- df[47:71,"NOTIF_US"]+df[47:71,"NOTIF_MORT_US"]   #US born population
-  Vn <- df[47:71,"NOTIF_F1"]+df[47:71,"NOTIF_F2"]+df[47:71,"NOTIF_MORT_F1"]+df[47:71,"NOTIF_MORT_F2"]   #non-US born population
+  Vu <- df[year_to_idx(1996):year_to_idx(2020),"NOTIF_US"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_US"]   #US born population
+  Vn <- df[year_to_idx(1996):year_to_idx(2020),"NOTIF_F1"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_F2"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_F1"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_F2"]   #non-US born population
   #remove create the 85+ age band
   Vn2<-Vu2<-rep(0,5)
   # Va2[1]<-sum(Va[1:5]);Va2[2]<-sum(Va[6:10]);Va2[3]<-sum(Va[11:15]); Va2[4]<-sum(Va[16:20]); Va2[5]<-sum(Va[21:25])
@@ -981,7 +982,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   #Percent of Non-US Born Cases from Recent Immigrant Population
   #updated for 5 year data
   #check this plot and otis
-  V <- cbind(df[47:71,"NOTIF_F1"]+df[47:71,"NOTIF_MORT_F1"],df[47:71,"NOTIF_F2"]+df[47:71,"NOTIF_MORT_F2"])
+  V <- cbind(df[year_to_idx(1996):year_to_idx(2020),"NOTIF_F1"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_F1"],df[year_to_idx(1996):year_to_idx(2020),"NOTIF_F2"]+df[year_to_idx(1996):year_to_idx(2020),"NOTIF_MORT_F2"])
   #create a five year band for this data
   V0<-rep(0,5)
   V0[1]<-sum(V[1:5,1])/sum(V[1:5,]);V0[2]<-sum(V[6:10,1])/sum(V[6:10,]);
@@ -1015,7 +1016,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   #Age Distribution of TB Cases in Percentages
   #updated for 5 year data
 
-  V   <- (df[47:71,136:146]+df[47:71,189:199])*1e6
+  V   <- (df[year_to_idx(1996):year_to_idx(2020),136:146]+df[year_to_idx(1996):year_to_idx(2020),189:199])*1e6
   V2  <- V[,-11]
   V2[,10] <- V2[,10]+V[,11]
   V2<-colSums(V2)
@@ -1052,10 +1053,10 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   ################################################################################
   ### ### ### CASES HR DISTRIBUTION 1993-2013  ### ### ### ### ### ###
 
-  X   <- (df[47:71,151]+df[47:71,204])
+  X   <- (df[year_to_idx(1996):year_to_idx(2020),151]+df[year_to_idx(1996):year_to_idx(2020),204])
   Xa  <- rbind(sum(X[1:5]),sum(X[6:10]), sum(X[11:15]),
                sum(X[16:20]), sum(X[21:25]))
-  W<-(df[47:71,151]+df[47:71,150]+df[47:71,204]+df[47:71,203])
+  W<-(df[year_to_idx(1996):year_to_idx(2020),151]+df[year_to_idx(1996):year_to_idx(2020),150]+df[year_to_idx(1996):year_to_idx(2020),204]+df[year_to_idx(1996):year_to_idx(2020),203])
   Wa  <- rbind(sum(W[1:5]),sum(W[6:10]), sum(W[11:15]),
                sum(W[16:20]), sum(W[21:25]))
 
@@ -1076,7 +1077,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   ###############################################################################
   ### Recent infection
   #colnames(M)
-  Vall <- (df[71,172:187]/df[71,156:171])
+  Vall <- (df[year_to_idx(2020),172:187]/df[year_to_idx(2020),156:171])
   plot(-1,0,ylim=c(0.02,1),xlim=c(0.5,16.5),xlab="",ylab="",axes=F)
   axis(2,las=2);box()
 
@@ -1097,7 +1098,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   ################################################################################
   #LTBI Prevalance by Age in 2011, US born
 
-  V  <- cbind(t(df[62,55:65]),t(df[62,33:43]-df[62,55:65]))
+  V  <- cbind(t(df[year_to_idx(2011),55:65]),t(df[year_to_idx(2011),33:43]-df[year_to_idx(2011),55:65]))
   colnames(V) <- c("LTBI", "No-LTBI")
 
   pIGRA<-1
@@ -1157,7 +1158,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   ################################################################################
   #LTBI Prevalance by Age in 2011, non-US born
 
-  V  <- cbind(t(df[62,66:76]),t(df[62,44:54]-df[62,66:76]))
+  V  <- cbind(t(df[year_to_idx(2011),66:76]),t(df[year_to_idx(2011),44:54]-df[year_to_idx(2011),66:76]))
   colnames(V) <- c("LTBI", "No-LTBI")
 
   pIGRA<-1
@@ -1203,7 +1204,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
 
   ################################################################################
   # Age Distribution of TB Deaths 1999-2014
-  V  <- df[50:69,227:237]
+  V  <- df[year_to_idx(1999):year_to_idx(2018),227:237]
   V2 <- V[,-11]; V2[,10] <- V[,10]+V[,11]
   V3 <- colSums(V2)*1e6
   V3 <- V3/sum(V3)*100
@@ -1234,7 +1235,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   ################################################################################
   # total tb deaths over time 1999-2016
   #tb deaths 2006-2016
-  V   <- rowSums(df[59:71,227:237])*1e6
+  V   <- rowSums(df[year_to_idx(2008):year_to_idx(2020),227:237])*1e6
   tb_death_tot<-as.numeric(CalibDatState$tbdeaths[[st]][10:20,3])
   tb_death_tot[is.na(tb_death_tot)]<-0
 
