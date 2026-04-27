@@ -19,7 +19,7 @@ model_load<-function(loc="US",data_dir=NULL){
   }
   # Register county locations in stateID so downstream st-based lookups work
   if (!is.null(loc_info) && loc_info$loc_type == "county") {
-    register_location(loc_info)
+    loc_info$st <- register_location(loc_info)
   }
 
 #'load necessary datasets
@@ -34,7 +34,15 @@ if (loc=="US"){
   Opt <<- readRDS(find_loc_file("US","Optim",data_dir=data_dir,required=FALSE))
   Par <<- readRDS(find_loc_file("US","Param",data_dir=data_dir,required=FALSE))
 } else {
-  CalibDat<<-CalibDatState<<-readRDS(find_loc_file(loc,"CalibDat",fallback_loc="ST",data_dir=data_dir))
+  if (!is.null(loc_info) && loc_info$loc_type == "county") {
+    # County: take country-wide ST CalibDat as base, overlay flat county
+    # data into row st of state-indexed fields. See merge_county_calibdat.
+    base_calibdat <- readRDS(find_loc_file("ST","CalibDat",data_dir=data_dir))
+    overlay_calibdat <- readRDS(find_loc_file(loc,"CalibDat",data_dir=data_dir))
+    CalibDat<<-CalibDatState<<-merge_county_calibdat(base_calibdat,overlay_calibdat,st=loc_info$st)
+  } else {
+    CalibDat<<-CalibDatState<<-readRDS(find_loc_file(loc,"CalibDat",fallback_loc="ST",data_dir=data_dir))
+  }
   CalibDatCases<<-CalibDat
   ParamInit_st<<-ParamInit<<-readRDS(find_loc_file("ST","ParamInit",fallback_loc=loc,data_dir=data_dir))
   StartVal_st<<-StartVal<<-readRDS(find_loc_file("ST","StartVal",fallback_loc=loc,data_dir=data_dir))
