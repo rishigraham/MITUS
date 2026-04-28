@@ -2,7 +2,7 @@
 # Function for calculating likelihood
 
 llikelihoodZ_st <-  function(samp_i,ParMatrix,loc, TB=1, calib_end_year=2021) { # ParMatrix = ParInit
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
   if(min(dim(as.data.frame(ParMatrix)))==1) {
     Par <- as.numeric(ParMatrix);

@@ -220,8 +220,9 @@ notif_age_nus_5yr_lLik_st <- function(V,st,rho=0.1) { # V = table of us notifica
 
 ##smoothed estimates
 notif_hr_lLik_st <- function(V,st) { # V = table of notifications by tx history (row=97:16, col=n then e)
-  notif_hr_5yr<-CalibDatCases[["hr_cases_sm"]][which(CalibDatCases[["hr_cases_sm"]][,1]==stateID[st,1]),7]*
-                CalibDatCases[["hr_cases_sm"]][which(CalibDatCases[["hr_cases_sm"]][,1]==stateID[st,1]),3]
+  sid <- get_stateID()
+  notif_hr_5yr<-CalibDatCases[["hr_cases_sm"]][which(CalibDatCases[["hr_cases_sm"]][,1]==sid[st,1]),7]*
+                CalibDatCases[["hr_cases_sm"]][which(CalibDatCases[["hr_cases_sm"]][,1]==sid[st,1]),3]
   # notif_5yr          <-    c(sum(CalibDatCases[["cases_yr_st"]][[st]][2:6,2]),
   #                             sum(CalibDatCases[["cases_yr_st"]][[st]][7:11,2]),
   #                             sum(CalibDatCases[["cases_yr_st"]][[st]][12:16,2]),
@@ -244,7 +245,8 @@ recent_trans_dist_lLik_st  <- function(V,st) {
 ### ### ### CASES FB RECENT ENTRY DISTRIBUTION 1993-2013  ### ### ### ### ### ### D
 # Motivation: should be a normal distribution because it is based on a model result
 notif_fb_rec_lLik_st<-function(V,st){
-  notif_rec<-CalibDatState[["rt_fb_cases_sm"]][which(CalibDatState[["rt_fb_cases_sm"]][,1]==stateID[st,1]),9]
+  sid <- get_stateID()
+  notif_rec<-CalibDatState[["rt_fb_cases_sm"]][which(CalibDatState[["rt_fb_cases_sm"]][,1]==sid[st,1]),9]
   notif_fb          <-  rbind(sum(CalibDatState[["cases_yr_ag_nat_st"]][[st]][2:6,12,"nusb"]),
                               sum(CalibDatState[["cases_yr_ag_nat_st"]][[st]][7:11,12,"nusb"]),
                               sum(CalibDatState[["cases_yr_ag_nat_st"]][[st]][12:16,12,"nusb"]),

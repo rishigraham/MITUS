@@ -1,5 +1,5 @@
 calib_graphs_st_summary<-function(locvec,date){
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
   # df<-as.data.frame(df)
   pdfname<-paste("MITUS_results/calib_graphs_state_summary_",date,".pdf",sep="")
@@ -345,7 +345,7 @@ calib_graphs_st_summary<-function(locvec,date){
 }
 
 calib_graphs_st_locs<-function(locvec,date){
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
   # df<-as.data.frame(df)
   pdfname<-paste("MITUS_results/calib_graphs_states_",date,".pdf",sep="")

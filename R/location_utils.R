@@ -100,6 +100,56 @@ find_loc_file<-function(loc,filetype,fallback_loc=NULL,data_dir=NULL,required=TR
   return(NULL)
 }
 
+# Package-private environment for runtime-mutable stateID. Created at
+# package load time. Holds the current effective stateID after any
+# register_location calls. Lives outside .GlobalEnv to avoid polluting
+# the user's workspace, and outside the package namespace to avoid
+# fighting LazyData's binding of the canonical packaged stateID.
+.mitus_state <- new.env(parent = emptyenv())
+
+#' Get the data directory passed to model_load (or NULL)
+#'
+#' Returns the external data directory \code{model_load} was called with,
+#' so downstream functions invoked during \code{param_init} (e.g.
+#' \code{weight_mort}, \code{age_denom}) can locate location-specific
+#' input files via \code{find_loc_file}. Returns NULL if no data_dir was
+#' provided or if model_load has not been called.
+#'@name get_data_dir
+#'@return Directory path (string) or NULL
+#'@export
+get_data_dir <- function() {
+  if (exists("data_dir", envir = .mitus_state, inherits = FALSE)) {
+    return(get("data_dir", envir = .mitus_state, inherits = FALSE))
+  }
+  NULL
+}
+
+#' Get the current effective stateID, preserving runtime registrations
+#'
+#' Returns the stateID from the package-private mutable store if a
+#' \code{register_location} call has populated it, otherwise loads the
+#' canonical packaged \code{stateID} fresh into a private environment
+#' and returns it. The latter path does not write to \code{.mitus_state}
+#' or \code{.GlobalEnv} — read-only paths leave state untouched.
+#'
+#' Replaces the historical \code{data("stateID", package="MITUS")} pattern
+#' that scattered through the codebase. That pattern loaded into
+#' \code{.GlobalEnv} on every call, which was harmless under the original
+#' state-only assumptions (\code{stateID} was treated as immutable canonical
+#' data) but silently undid runtime registrations for sub-state locations.
+#'
+#'@name get_stateID
+#'@return stateID matrix
+#'@export
+get_stateID <- function() {
+  if (exists("stateID", envir = .mitus_state, inherits = FALSE)) {
+    return(get("stateID", envir = .mitus_state, inherits = FALSE))
+  }
+  e <- new.env()
+  utils::data("stateID", package = "MITUS", envir = e)
+  e$stateID
+}
+
 #' Resolve a location code to its lookup entry
 #'
 #' Checks stateID first, then falls back to county_ID.csv for sub-state
@@ -110,7 +160,7 @@ find_loc_file<-function(loc,filetype,fallback_loc=NULL,data_dir=NULL,required=TR
 #'@return List with name, fips, code, loc_type, st. NULL if not found.
 #'@export
 resolve_location<-function(loc){
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
   if(loc=="US"){
     return(list(name="United States",fips="0",code="US",
@@ -147,14 +197,14 @@ resolve_location<-function(loc){
 #'@return Row index (st) of the location in stateID (invisible)
 #'@export
 register_location<-function(loc_info){
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
   idx<-which(StateID$USPS==loc_info$code)
   if(length(idx)>0) return(invisible(idx))
   new_row<-data.frame(Name=loc_info$name,FIPS=as.character(loc_info$fips),
                       USPS=loc_info$code,stringsAsFactors=FALSE)
   StateID<-rbind(StateID,new_row)
-  stateID<<-as.matrix(StateID)
+  assign("stateID",as.matrix(StateID),envir=.mitus_state)
   return(invisible(nrow(StateID)))
 }
 

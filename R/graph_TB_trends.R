@@ -2,7 +2,7 @@ loc_vec<-c("CA","FL","GA","IL","MA","NJ","NY","PA","TX","VA","WA")
 
 state_fits<-function(vec){
 library(MCMCpack)
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
   pdfname<-paste("MITUS_results/state_TBtrend_graphs",Sys.time(),".pdf",sep="")
   pdf(file=pdfname, width = 11, height = 8.5)

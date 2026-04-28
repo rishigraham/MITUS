@@ -8,7 +8,7 @@
 calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
 
   library(MCMCpack)
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
   st<-which(StateID$USPS==loc)
   df<-as.data.frame(df)
@@ -415,7 +415,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
   V0<-V0*100
   #reported data for comparison
 
-  notif_rec<-CalibDatState[["rt_fb_cases_sm"]][which(CalibDatState[["rt_fb_cases_sm"]][,1]==stateID[st,1]),9]
+  notif_rec<-CalibDatState[["rt_fb_cases_sm"]][which(CalibDatState[["rt_fb_cases_sm"]][,1]==get_stateID()[st,1]),9]
   notif_time<-c(1998,2003,2008,2013,2018)
   notif_fb_rec<-cbind(notif_rec*100, notif_time)
   #format the plot
@@ -550,7 +550,7 @@ calib_graphs_st <- function(df,loc, Par_list,pdf=TRUE, cex.size=.7){
 
     V<-Xa/Wa
 
-    notif_hr<-CalibDatState[["hr_cases_sm"]][which(CalibDatState[["hr_cases_sm"]][,1]==stateID[st,1]),7]
+    notif_hr<-CalibDatState[["hr_cases_sm"]][which(CalibDatState[["hr_cases_sm"]][,1]==get_stateID()[st,1]),7]
     notif_hr<-cbind(notif_time,notif_hr)
     plot(0,0,ylim=c(0,max(V,notif_hr[,2][is.na(notif_hr[,2])==FALSE])*110),xlim=c(1995,2020),xlab="",ylab="",axes=F)
     axis(1);axis(2,las=2);box()
@@ -800,7 +800,7 @@ if (pdf==TRUE) {dev.off()}
 calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
 
   library(MCMCpack)
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
   st<-which(StateID$USPS==loc)
   df<-as.data.frame(df)
@@ -990,7 +990,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
   V0<-V0*100
   #reported data for comparison
 
-  notif_rec<-CalibDatState[["rt_fb_cases_sm"]][which(CalibDatState[["rt_fb_cases_sm"]][,1]==stateID[st,1]),9]
+  notif_rec<-CalibDatState[["rt_fb_cases_sm"]][which(CalibDatState[["rt_fb_cases_sm"]][,1]==get_stateID()[st,1]),9]
   notif_time<-c(1998,2003,2008,2013,2018)
   notif_fb_rec<-cbind(notif_rec*100, notif_time)
   #format the plot
@@ -1062,7 +1062,7 @@ calib_graphs_st_2020 <- function(df,loc ,pdf=TRUE, cex.size=.7){
 
   V<-Xa/Wa
 
-  notif_hr<-CalibDatState[["hr_cases_sm"]][which(CalibDatState[["hr_cases_sm"]][,1]==stateID[st,1]),7]
+  notif_hr<-CalibDatState[["hr_cases_sm"]][which(CalibDatState[["hr_cases_sm"]][,1]==get_stateID()[st,1]),7]
   notif_hr<-cbind(notif_time,notif_hr)
   plot(0,0,ylim=c(0,max(V,notif_hr[,2][is.na(notif_hr[,2])==FALSE])*110),xlim=c(1995,2020),xlab="",ylab="",axes=F)
   axis(1);axis(2,las=2);box()

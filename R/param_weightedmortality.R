@@ -35,13 +35,21 @@ weight_mort<-function(loc){
 
     weight_mort<-t(weight_mort)
   } else {
-    #find the state ID number
-    #this indexing is based off of the fips data
-    data("stateID",package="MITUS")
-    StateID<-as.data.frame(stateID)
-    index<-which(StateID$USPS==loc)
-    #read in the lifetable data
-    ST_mortrate<-readRDS(system.file("ST/ST_SingleYearLifeTable.rds",package="MITUS"))[[index]][,-1]
+    # Read the lifetable data. Try a location-specific file first
+    # (supports sub-state locations whose data isn't in the package's
+    # state-indexed list); fall back to ST/ST_SingleYearLifeTable.rds[[st]]
+    # for state-level callers using the canonical packaged data.
+    loc_file <- find_loc_file(loc, "SingleYearLifeTable",
+                              data_dir = get_data_dir(), required = FALSE)
+    if (!is.null(loc_file)) {
+      ST_mortrate <- readRDS(loc_file)[,-1]
+    } else {
+      stateID <- get_stateID()
+      StateID <- as.data.frame(stateID)
+      index <- which(StateID$USPS == loc)
+      ST_mortrate <- readRDS(system.file("ST/ST_SingleYearLifeTable.rds",
+                                         package = "MITUS"))[[index]][,-1]
+    }
 
     #calculate the crude mortality rates for the US national
     death_age <-readRDS(system.file("US/US_MortalityCountsByAge.rds", package="MITUS"))[,2:69]

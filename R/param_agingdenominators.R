@@ -40,19 +40,25 @@ age_denom<-function(loc, month){
 
     age_den<-t(td)*12
   } else {
-    #find the state ID number
-    #this indexing is based off of the fips data
-    data("stateID",package="MITUS")
-    StateID<-as.data.frame(stateID)
-    index<-which(StateID$USPS==loc)
-    st<-as.numeric(as.matrix(StateID[index,2]))
-    #read in the population distribution data
-    #this data is only decades + 2017
-    pop<-readRDS(system.file("ST/ST_PopCountsByAge.rds", package = "MITUS"))
-    pop<-pop[pop$fips==st,]
-    popdist<-pop[,-(1:3)]
-    rownames(popdist)<-pop[,2]
-    popdist<-as.matrix(popdist)
+    # Read population distribution data. Try a location-specific file
+    # first (supports sub-state locations whose fips isn't in the
+    # packaged ST table); fall back to ST/ST_PopCountsByAge.rds filtered
+    # by fips for state-level callers using the canonical packaged data.
+    loc_file <- find_loc_file(loc, "PopCountsByAge",
+                              data_dir = get_data_dir(), required = FALSE)
+    if (!is.null(loc_file)) {
+      pop <- readRDS(loc_file)
+    } else {
+      stateID <- get_stateID()
+      StateID <- as.data.frame(stateID)
+      index <- which(StateID$USPS == loc)
+      st <- as.numeric(as.matrix(StateID[index, 2]))
+      pop <- readRDS(system.file("ST/ST_PopCountsByAge.rds", package = "MITUS"))
+      pop <- pop[pop$fips == st, ]
+    }
+    popdist <- pop[,-(1:3)]
+    rownames(popdist) <- pop[, 2]
+    popdist <- as.matrix(popdist)
 
     if (loc %in% c("AK","HI")){
       years<-c(2017,2010,2000,1990,1980,1970,1960)

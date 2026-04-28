@@ -167,7 +167,7 @@ llikelihoodZ_noRB <-  function(samp_i,opt_mat) {
 #'@param loc two digit location code
 #'@return lLik
 llikelihoodZ_noRB_st <-  function(samp_i,opt_mat,loc="MA") { # opt_mat = ParInit
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
   # model_inputs<-paste0(loc,"_ModelInputs_11-13-18")
   # data(list=model_inputs, package = 'MITUS')

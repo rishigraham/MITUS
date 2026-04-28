@@ -110,7 +110,7 @@ llikelihoodZ_noTB_rblnc <-  function(samp_i,opt_mat) {
 #'@param opt_mat matrix of parameters  # Par = par_1
 #'@return lLik
 llikelihoodZ_noTB_rblnc_st <-  function(samp_i,opt_mat,loc) {
-  data("stateID",package="MITUS")
+  stateID <- get_stateID()
   StateID<-as.data.frame(stateID)
 
   if(min(dim(as.data.frame(opt_mat)))==1) {

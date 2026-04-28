@@ -236,7 +236,7 @@
   }
 
   future_graphs_st <-function(loc,df, cex.size = .7){
-    data("stateID",package="MITUS")
+    stateID <- get_stateID()
     StateID<-as.data.frame(stateID)
     st<-which(StateID$USPS==loc)
     df<-as.data.frame(df)

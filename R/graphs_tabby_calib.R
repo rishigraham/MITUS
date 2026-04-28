@@ -493,7 +493,7 @@ tabby_calib_graphs <- function(loc, out_i) {
 
   }
   else{
-    data("stateID",package="MITUS")
+    stateID <- get_stateID()
     StateID<-as.data.frame(stateID)
 
     st<-which(StateID$USPS==loc)

@@ -21,6 +21,11 @@ model_load<-function(loc="US",data_dir=NULL){
   if (!is.null(loc_info) && loc_info$loc_type == "county") {
     loc_info$st <- register_location(loc_info)
   }
+  # Cache data_dir so downstream functions (weight_mort, age_denom, etc.)
+  # called during param_init can locate sub-state input files via
+  # find_loc_file. Cleared (set to NULL) when not provided so a stale
+  # value from a prior model_load call doesn't bleed through.
+  assign("data_dir", data_dir, envir = .mitus_state)
 
 #'load necessary datasets
 #'Model Input
@@ -47,10 +52,25 @@ if (loc=="US"){
   ParamInit_st<<-ParamInit<<-readRDS(find_loc_file("ST","ParamInit",fallback_loc=loc,data_dir=data_dir))
   StartVal_st<<-StartVal<<-readRDS(find_loc_file("ST","StartVal",fallback_loc=loc,data_dir=data_dir))
   Inputs<<-readRDS(find_loc_file(loc,"ModelInputs",data_dir=data_dir))
-  # Load DeathByAge data once (used by calibration likelihood functions)
-  dba_file<-find_loc_file(loc,"deathbyAge",fallback_loc="ST",data_dir=data_dir,required=FALSE)
-  if(!is.null(dba_file)){
-    DeathByAge <<- readRDS(dba_file)
+  # Load DeathByAge data once (used by calibration likelihood functions).
+  # Calibration code indexes DeathByAge[[st]] (state row), so for sub-state
+  # locations we load the country-wide ST list as base and overlay the
+  # county's matrix into slot st (mirrors the CalibDat merge pattern).
+  if (!is.null(loc_info) && loc_info$loc_type == "county") {
+    base_dba_file <- find_loc_file("ST","deathbyAge",data_dir=data_dir,required=FALSE)
+    overlay_dba_file <- find_loc_file(loc,"deathbyAge",data_dir=data_dir,required=FALSE)
+    if (!is.null(base_dba_file)) {
+      base_dba <- readRDS(base_dba_file)
+      if (!is.null(overlay_dba_file)) {
+        base_dba[[loc_info$st]] <- readRDS(overlay_dba_file)
+      }
+      DeathByAge <<- base_dba
+    }
+  } else {
+    dba_file<-find_loc_file(loc,"deathbyAge",fallback_loc="ST",data_dir=data_dir,required=FALSE)
+    if(!is.null(dba_file)){
+      DeathByAge <<- readRDS(dba_file)
+    }
   }
   par_file<-find_loc_file(loc,"Param",data_dir=data_dir,required=FALSE)
   if(!is.null(par_file)){
