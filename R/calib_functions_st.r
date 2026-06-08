@@ -462,7 +462,7 @@ tot_pop1719_ag_fb_lLik_st <- function(V,st,ESS=500) { # V =  US pop in 2014 (row
 #'@param V
 #'@return likelihood
 dth_tot_lLik_st <- function(V,st) {
-  ST_deaths_tot <- DeathByAge[[loc]][48, 12]
+  ST_deaths_tot <- DeathByAge[[st]][48, 12]
   adj_20a         <- sum(dnorm(ST_deaths_tot,ST_deaths_tot,ST_deaths_tot*0.1/1.96,log=T)*wts[year_to_idx(2016)])
   sum(dnorm(ST_deaths_tot,V*1e6,ST_deaths_tot*0.1/1.96,log=T)*wts[year_to_idx(2016)]) - adj_20a
 }
@@ -473,7 +473,7 @@ dth_tot_lLik_st <- function(V,st) {
 #'@param rho correlation parameter
 #'@return likelihood
 tot_dth_age_lLik_st <- function(V,st,rho=0.01) {
-  tda <- DeathByAge[[loc]][47:48,-c(1,12)]
+  tda <- DeathByAge[[st]][47:48,-c(1,12)]
   adj_20b        <- sum(dDirMult(M=tda+0.1,n=tda,Rho=rho)*wts[year_to_idx(2015):year_to_idx(2016)])
   V2 <- V[,-11]; V2[,10] <- V2[,10]+V[,11]
   # V2<-V2*1e6
