@@ -126,10 +126,13 @@ dDirMult <- function(M,n,Rho) {
   ### this condition is necessary to check for the vector inputs from
   ### likelihoods which have a variable number of bins for the distribution
   ### this is due to missing/censored data in TB reporting
+  elem <- lgamma(n + M/Rho) - lgamma(M/Rho)
+  if (!is.numeric(elem) || is.list(elem)) elem <- data.matrix(elem)
+  elem[is.nan(elem)] <- 0
   if (ncol(M)==1){
-    sum(lgamma(n+M/Rho))-sum(lgamma(M/Rho))
+    sum(elem)
   } else{
-    rowSums(lgamma(n+M/Rho))-rowSums(lgamma(M/Rho))
+    rowSums(elem)
   }
 }
 #'Simple function to return the mode of a vector
