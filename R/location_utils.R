@@ -219,13 +219,17 @@ register_location<-function(loc_info){
 #'
 #' Slots in \code{state_indexed_fields} are populated from the overlay when
 #' present and left as the base value (typically NULL beyond length 51) when
-#' absent — i.e. no silent fallback to another state's data. Non-state-indexed
-#' fields are replaced with the overlay's value when the overlay provides them.
+#' absent — i.e. no silent fallback to another state's data. Fields in
+#' \code{by_row_state_keyed_fields} are flat data.frames keyed by a state
+#' identifier column (integer State.Code or state Name); overlay rows are
+#' appended to the base table so calibration lookups for the sub-state
+#' location find them. Other non-state-indexed fields are replaced with the
+#' overlay's value when the overlay provides them.
 #'
 #' Issues a warning if the country-wide CalibDat contains length-51 list
 #' fields not in \code{state_indexed_fields}, indicating possible drift if
 #' MITUS adds new state-indexed fields after this generalization. The hardcoded
-#' field list should be updated in that case.
+#' field lists should be updated in that case.
 #'
 #'@name merge_county_calibdat
 #'@param base Country-wide CalibDat (e.g., contents of \code{ST_CalibDat_*.rds})
@@ -239,20 +243,30 @@ merge_county_calibdat<-function(base,overlay,st){
     "hr_cases","homeless_pop","TLTBI_volume_state",
     "tbdeaths","pop_00_17","pop_00_19","pop_50_10"
   )
+  by_row_state_keyed_fields<-c(
+    "cases_nat_st_5yr","hr_cases_sm","rt_fb_cases_sm","rct_cases_sm"
+  )
   out<-base
-  # 1. Slot county data into known state-indexed fields
+  # 1. Slot county data into known state-indexed list fields
   for(fld in state_indexed_fields){
     if(!is.null(overlay[[fld]])&&!is.null(out[[fld]])){
       out[[fld]][[st]]<-overlay[[fld]]
     }
   }
-  # 2. Replace non-state-indexed fields with overlay values
+  # 2. Append county rows to known by-row state-keyed tables
+  for(fld in by_row_state_keyed_fields){
+    if(!is.null(overlay[[fld]])&&!is.null(out[[fld]])){
+      out[[fld]]<-rbind(out[[fld]],overlay[[fld]])
+    }
+  }
+  # 3. Replace other non-indexed fields with overlay values
+  known_fields<-c(state_indexed_fields,by_row_state_keyed_fields)
   for(fld in names(overlay)){
-    if(!(fld %in% state_indexed_fields)){
+    if(!(fld %in% known_fields)){
       out[[fld]]<-overlay[[fld]]
     }
   }
-  # 3. Drift check: warn about length-51 list fields not in our merge list
+  # 4. Drift check: warn about length-51 list fields not in our merge list
   is_state_list<-function(x) is.list(x)&&!is.data.frame(x)&&length(x)==51
   base_state_lists<-vapply(base,is_state_list,logical(1))
   unmerged<-setdiff(names(base)[base_state_lists],state_indexed_fields)
