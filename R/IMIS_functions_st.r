@@ -81,7 +81,7 @@ llikelihoodZ_st <-  function(samp_i,ParMatrix,loc, TB=1, calib_end_year=2021) { 
       ### ### ### TB SPECIFIC LIKELIHOODS
       if(TB==1){
         ### ### ### TOTAL DIAGNOSED CASES 1993-2018  ### ### ### ### ### ### D
-        v1   <- M[year_to_idx(1993):year_to_idx(2019),"NOTIF_ALL"]+M[year_to_idx(1993):year_to_idx(2019),"NOTIF_MORT_ALL"]
+        v1   <- M[, "NOTIF_ALL"] + M[, "NOTIF_MORT_ALL"]   ### lLik slices by data years
         addlik <- notif_tot_lLik_st(V=v1,st=st); addlik
         lLik <- lLik + addlik
         # print(paste("1:", lLik))
@@ -152,7 +152,7 @@ llikelihoodZ_st <-  function(samp_i,ParMatrix,loc, TB=1, calib_end_year=2021) { 
         lLik <- lLik + addlik
         # print(paste("10:", lLik))
         ### ### ### TREATMENT OUTCOMES 1993-2015  ### ### ### ### ### ### D
-        v11  <- M[year_to_idx(1993):year_to_idx(2015),132:134]
+        v11  <- M[, 132:134]   ### lLik slices by data years
         addlik <- tx_outcomes_lLik_st(V=v11); addlik
         lLik <- lLik + addlik
         # print(paste("11:", lLik))
@@ -190,7 +190,7 @@ llikelihoodZ_st <-  function(samp_i,ParMatrix,loc, TB=1, calib_end_year=2021) { 
         lLik <- lLik + addlik
         # # print(paste("15:", lLik))
         # ### ### ### TOTAL DEATHS WITH TB 1999-2018 ### ### ### ### ### ###  D
-        v19  <- M[year_to_idx(1999):year_to_idx(2019),227:237]   ### THIS NOW ALL TB DEATHS
+        v19  <- M[, 227:237]   ### THIS NOW ALL TB DEATHS; lLik slices by data years
         addlik <- tbdeaths_lLik_st(V=v19,st=st); addlik
         lLik <- lLik + addlik
         # # print(paste("16:", lLik))

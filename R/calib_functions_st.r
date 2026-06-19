@@ -15,12 +15,19 @@ idx_decades<-c(11,21,31,41,51,61,70) # 1960,1970,1980,1990,2000,2010,2019
 #'@param V vector of total notifi
 #'cations 1953-2014
 #'@return likelihood
-notif_tot_lLik_st <- function(V,st) {
-  notif_tot     <- CalibDatCases[["cases_yr_st"]][[st]][,2];
-  wts2 <- wts; wts2[length(wts2)] <- wts2[length(wts2)]*2;
-  adj_1         <- sum((dnorm(notif_tot,notif_tot,notif_tot*0.1/1.96,log=T)*wts2[year_to_idx(1993):year_to_idx(2019)])[is.na(notif_tot)==F  & notif_tot != 0])
+notif_tot_lLik_st <- function(V,st) { # V = simulator NOTIF_ALL+NOTIF_MORT_ALL, all years
+  raw       <- CalibDatCases[["cases_yr_st"]][[st]]
+  years_all <- as.integer(raw[, "year"])
+  keep      <- years_all %in% as.integer(names(wts))
+  years     <- years_all[keep]
+  notif_tot <- as.numeric(raw[keep, "cases"])
+  wts2      <- wts; wts2[length(wts2)] <- wts2[length(wts2)]*2
+  wt_slice  <- wts2[as.character(years)]
+  V_slice   <- V[year_to_idx(years)]
+  ok        <- !is.na(notif_tot) & notif_tot != 0
+  adj_1 <- sum((dnorm(notif_tot, notif_tot, notif_tot*0.1/1.96, log=T) * wt_slice)[ok])
   #notif tot is in real scale must scale outputs up
-  sum((dnorm(notif_tot,V*1e6,notif_tot*0.1/1.96,log=T)*wts2[year_to_idx(1993):year_to_idx(2019)])[is.na(notif_tot)==F  & notif_tot != 0]) - adj_1
+  sum((dnorm(notif_tot, V_slice*1e6, notif_tot*0.1/1.96, log=T) * wt_slice)[ok]) - adj_1
 }
 
 ### ### ### TOTAL DIAGNOSED CASES 1953-1993  ### ### ### ### ### ### D
@@ -273,11 +280,18 @@ notif_fb_rec_lLik_st<-function(V,st){
 ### ### ### TREATMENT OUTCOMES 1993-2012  ### ### ### ### ### ### D
 # Motivation: dirichlet-multinomial, multinomial data with additional non-sampling biases
 
-tx_outcomes_lLik_st <- function(V,rho=0.01) {
-  tx_outcomes      <- (cbind(1-rowSums(CalibDatState[["tx_outcomes"]][,2:3]),CalibDatState[["tx_outcomes"]][,2],CalibDatState[["tx_outcomes"]][,3])*CalibDatState[["tx_outcomes"]][,4])
-  adj_11           <- sum(dDirMult(M=tx_outcomes+0.01,n=tx_outcomes,Rho=0.01)*wts[year_to_idx(1993):year_to_idx(2015)])# V = table of treatment outcomes 1993-2012 (row=20 years, col= complete, discontinue, dead)
+tx_outcomes_lLik_st <- function(V,rho=0.01) { # V = simulator tx-outcome output for cols 132:134, all years
+  raw           <- CalibDatState[["tx_outcomes"]]
+  years_all     <- as.integer(raw[, "year"])
+  keep          <- years_all %in% as.integer(names(wts))
+  years         <- years_all[keep]
+  raw_k         <- raw[keep, ]
+  tx_outcomes   <- cbind(1 - rowSums(raw_k[, 2:3]), raw_k[, 2], raw_k[, 3]) * raw_k[, 4]
+  wt_slice      <- wts[as.character(years)]
+  V_slice       <- V[year_to_idx(years), , drop = FALSE]
+  adj_11 <- sum(dDirMult(M = tx_outcomes + 0.01, n = tx_outcomes, Rho = 0.01) * wt_slice)
   #scale does not matter for dirichlet llikelihood
-  sum(dDirMult(M=V,n=tx_outcomes,Rho=rho)*wts[year_to_idx(1993):year_to_idx(2015)]) - adj_11
+  sum(dDirMult(M = V_slice, n = tx_outcomes, Rho = rho) * wt_slice) - adj_11
   }
 
 ### ### ### TOTAL LTBI TREATMENT INITS 2002  ### ### ### ### ### ### D
@@ -328,11 +342,18 @@ ltbi_fb_11_dp_lLik_st <- function(V) { # V = LTBI in FB pop 2011 (row=11 ages, c
   (sum( dbeta(V[2:9,1]/rowSums(V[2:9,]),ltbi_fb_11_dp[,2],ltbi_fb_11_dp[,3],log=T) ) - adj_16dp)*2  }
 ### ### ### Total TB DEATHS 1999-2016 ### ### ### ### ### ### D
 
-tbdeaths_lLik_st <- function(V,st) { # V = vector of total notifications 1999-2016
-  tb_deaths <- as.numeric(CalibDatState[["tbdeaths"]][[st]][,3])
-  V2<-rowSums(V)*1e6
-  adj_19    <- sum((dnorm(tb_deaths,tb_deaths,tb_deaths*0.1/1.96,log=T)*wts[year_to_idx(1999):year_to_idx(2019)])[is.na(tb_deaths)==F])
-  sum((dnorm(tb_deaths,V2,tb_deaths*0.1/1.96,log=T)*wts[year_to_idx(1999):year_to_idx(2019)])[is.na(tb_deaths)==F]) - adj_19
+tbdeaths_lLik_st <- function(V,st) { # V = simulator TB-death output for cols 227:237, all years
+  raw       <- CalibDatState[["tbdeaths"]][[st]]
+  years_all <- as.integer(raw[, "Year"])
+  keep      <- years_all %in% as.integer(names(wts))
+  years     <- years_all[keep]
+  tb_deaths <- as.numeric(raw[keep, "Deaths"])
+  wt_slice  <- wts[as.character(years)]
+  V_slice   <- V[year_to_idx(years), , drop = FALSE]
+  V2        <- rowSums(V_slice) * 1e6
+  ok        <- !is.na(tb_deaths)
+  adj_19 <- sum((dnorm(tb_deaths, tb_deaths, tb_deaths*0.1/1.96, log=T) * wt_slice)[ok])
+  sum((dnorm(tb_deaths, V2, tb_deaths*0.1/1.96, log=T) * wt_slice)[ok]) - adj_19
 }
 ### ### ### ANN DECLINE IN TB DEATHS 1968-2015  ### ### ### ### ### ### D
 
@@ -345,11 +366,17 @@ tbdeaths_decline_lLik_st <- function(V) { # V = vector of tb deaths 1968-2015
 ### ### ### TB DEATHS AGE DISTRIBUTION 1999-2016  ### ### ### ### ### ### D
 # Motivation: dirichlet-multinomial, multinomial data with additional non-sampling biases
 
-tb_dth_age_lLik_st <- function(V,rho=0.005) { # V = table of deaths by age 1999-2016 (row=18 years, col=11 ages)
-  tb_deaths_age  <- CalibDatState[["tbdeaths_age_yr"]][,-1]
-  adj_19b        <- sum(dDirMult(M=tb_deaths_age+0.005,n=tb_deaths_age,Rho=rho)*wts[year_to_idx(1999):year_to_idx(2019)])
-  V2 <- V[,-11]; V2[,10] <- V2[,10]+V[,11]
-  sum(dDirMult(M=V2,n=tb_deaths_age,Rho=rho)*wts[year_to_idx(1999):year_to_idx(2019)]) - adj_19b
+tb_dth_age_lLik_st <- function(V,rho=0.005) { # V = simulator TB-death output for cols 227:237, all years
+  raw           <- CalibDatState[["tbdeaths_age_yr"]]
+  years_all     <- as.integer(raw[, "year"])
+  keep          <- years_all %in% as.integer(names(wts))
+  years         <- years_all[keep]
+  tb_deaths_age <- raw[keep, -1]
+  wt_slice      <- wts[as.character(years)]
+  V_slice       <- V[year_to_idx(years), , drop = FALSE]
+  adj_19b <- sum(dDirMult(M = tb_deaths_age + 0.005, n = tb_deaths_age, Rho = rho) * wt_slice)
+  V2 <- V_slice[, -11]; V2[, 10] <- V2[, 10] + V_slice[, 11]
+  sum(dDirMult(M = V2, n = tb_deaths_age, Rho = rho) * wt_slice) - adj_19b
 }
 ### ### ### TOTAL POP EACH DECADE, FOR FB  ### ### ### ### ### ###  D
 # Motivation: norm, mean centered with CI = +/- 2 million wts[1+0:6*10]
