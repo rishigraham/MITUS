@@ -44,17 +44,67 @@ find_loc_file<-function(loc,filetype,fallback_loc=NULL,data_dir=NULL,required=TR
   pattern<-paste0("^",loc,"_?",filetype,"([_.].*)?\\.rds$")
   fb_pattern<-if(!is.null(fallback_loc)) paste0("^",fallback_loc,"_?",filetype,"([_.].*)?\\.rds$")
 
+  # Parse calibration-vintage date from a filename, trying common formats:
+  # YYYY-MM-DD (e.g. 2022-07-08), MM-DD-YY (e.g. 04-20-22), MMDDYY (e.g. 111620).
+  # Returns Date or NA. We prefer date-in-filename over filesystem mtime because
+  # mtime is non-deterministic across checkouts (a freshly-cloned tree gives all
+  # files identical mtimes), while filename dates are stable and meaningful.
+  # Future-dated matches (e.g. ST_CalibDat_09-22-28 typo for ...18) are treated
+  # as NA — a calibration file dated past today is almost certainly a typo.
+  today<-Sys.Date()
+  parse_filename_date<-function(filename){
+    bn<-sub("\\.rds$","",basename(filename))
+    check<-function(d){
+      if(is.na(d)) return(as.Date(NA))
+      if(d>today) return(as.Date(NA))
+      d
+    }
+    m<-regmatches(bn,regexpr("\\d{4}-\\d{2}-\\d{2}",bn))
+    if(length(m)>0 && nchar(m)>0){
+      d<-check(suppressWarnings(as.Date(m,"%Y-%m-%d")))
+      if(!is.na(d)) return(d)
+    }
+    m<-regmatches(bn,regexpr("\\d{2}-\\d{2}-\\d{2}",bn))
+    if(length(m)>0 && nchar(m)>0){
+      d<-check(suppressWarnings(as.Date(m,"%m-%d-%y")))
+      if(!is.na(d)) return(d)
+    }
+    m<-regmatches(bn,regexpr("(?<![0-9])\\d{6}(?![0-9])",bn,perl=TRUE))
+    if(length(m)>0 && nchar(m)>0){
+      d<-check(suppressWarnings(as.Date(m,"%m%d%y")))
+      if(!is.na(d)) return(d)
+    }
+    as.Date(NA)
+  }
+  # Pick the file with the latest filename-date. Files with no parseable date
+  # rank below any dated file; ties (or no dated file at all) fall back to mtime.
+  pick_canonical<-function(files){
+    if(length(files)==1) return(files)
+    dates<-as.Date(sapply(files,parse_filename_date),origin="1970-01-01")
+    has_date<-!is.na(dates)
+    if(any(has_date)){
+      candidates<-files[has_date]
+      cand_dates<-dates[has_date]
+      max_date<-max(cand_dates)
+      finalists<-candidates[cand_dates==max_date]
+      if(length(finalists)==1) return(finalists)
+      return(finalists[which.max(file.mtime(finalists))])
+    }
+    files[which.max(file.mtime(files))]
+  }
+
   # helper: search a directory for matching files
   search_dir<-function(base_dir,prefix,pat){
     d<-file.path(base_dir,prefix)
     if(!dir.exists(d)) return(NULL)
     files<-list.files(d,pattern=pat,full.names=TRUE,ignore.case=TRUE)
     if(length(files)==0) return(NULL)
+    picked<-pick_canonical(files)
     if(length(files)>1){
       warning(paste0("Multiple files matched for ",prefix,"/",filetype,
-                     "; using most recently modified: ",basename(files[which.max(file.mtime(files))])))
+                     "; using ",basename(picked)))
     }
-    files[which.max(file.mtime(files))]
+    picked
   }
 
   # search external data_dir first (e.g., SIMULATOR_INPUT_DIR)
@@ -71,11 +121,12 @@ find_loc_file<-function(loc,filetype,fallback_loc=NULL,data_dir=NULL,required=TR
   if(nchar(pkg_dir)>0){
     files<-list.files(pkg_dir,pattern=pattern,full.names=TRUE,ignore.case=TRUE)
     if(length(files)>0){
+      picked<-pick_canonical(files)
       if(length(files)>1){
         warning(paste0("Multiple files matched for ",loc,"/",filetype,
-                       "; using most recently modified: ",basename(files[which.max(file.mtime(files))])))
+                       "; using ",basename(picked)))
       }
-      return(files[which.max(file.mtime(files))])
+      return(picked)
     }
   }
   if(!is.null(fallback_loc)){
@@ -83,11 +134,12 @@ find_loc_file<-function(loc,filetype,fallback_loc=NULL,data_dir=NULL,required=TR
     if(nchar(fb_pkg_dir)>0){
       files<-list.files(fb_pkg_dir,pattern=fb_pattern,full.names=TRUE,ignore.case=TRUE)
       if(length(files)>0){
+        picked<-pick_canonical(files)
         if(length(files)>1){
           warning(paste0("Multiple files matched for ",fallback_loc,"/",filetype,
-                         "; using most recently modified: ",basename(files[which.max(file.mtime(files))])))
+                         "; using ",basename(picked)))
         }
-        return(files[which.max(file.mtime(files))])
+        return(picked)
       }
     }
   }
