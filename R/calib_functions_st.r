@@ -498,32 +498,38 @@ tot_pop1719_ag_fb_lLik_st <- function(V,st,ESS=500) { # V =  US pop in 2014 (row
   (sum(log(V2[,1])*pop_ag_11_19[,1])+sum(log(V2[,2])*pop_ag_11_19[,2]))*ESS - adj_18
 }
 
-#' TOTAL US DEATHS
-#' 1970,1975,1980,1985,1990-2007
-#' Motivation: norm, mean centered with CI = +/- 5% of mean
+#' TOTAL ALL-CAUSE DEATHS, MOST RECENT AVAILABLE YEAR
+#' Motivation: norm, mean centered with CI = +/- 10% of mean
 #'@name dth_tot_lLik_st
-#'@param V
+#'@param V simulator all-cause deaths by age (rows = years, 11 age columns)
 #'@return likelihood
 dth_tot_lLik_st <- function(V,st) {
   dba           <- DeathByAge[[st]]
-  ST_deaths_tot <- dba[dba_year_rows(dba, 2016), dba_total_col(dba)]
-  adj_20a         <- sum(dnorm(ST_deaths_tot,ST_deaths_tot,ST_deaths_tot*0.1/1.96,log=T)*wts[year_to_idx(2016)])
-  sum(dnorm(ST_deaths_tot,V*1e6,ST_deaths_tot*0.1/1.96,log=T)*wts[year_to_idx(2016)]) - adj_20a
+  yrs           <- as.integer(dba[, 1])
+  year          <- max(yrs[yrs %in% as.integer(names(wts))])
+  ST_deaths_tot <- dba[dba_year_rows(dba, year), dba_total_col(dba)]
+  wt_slice      <- wts[as.character(year)]
+  V_slice       <- rowSums(V[year_to_idx(year), , drop = FALSE])
+  adj_20a       <- sum(dnorm(ST_deaths_tot, ST_deaths_tot, ST_deaths_tot*0.1/1.96, log=T) * wt_slice)
+  sum(dnorm(ST_deaths_tot, V_slice*1e6, ST_deaths_tot*0.1/1.96, log=T) * wt_slice) - adj_20a
 }
 
-#'  #' TOTAL DEATHS AGE DISTRIBUTION 1999-2014
+#' ALL-CAUSE DEATHS AGE DISTRIBUTION, MOST RECENT TWO AVAILABLE YEARS
 #' Motivation: dirichlet-multinomial, multinomial data with additional non-sampling biases
-#'@param V table of deaths by age 1999-2014 (row=16 years, col=11 ages)
+#'@param V simulator all-cause deaths by age (rows = years, 11 age columns)
 #'@param rho correlation parameter
 #'@return likelihood
 tot_dth_age_lLik_st <- function(V,st,rho=0.01) {
-  dba <- DeathByAge[[st]]
-  tda <- dba[dba_year_rows(dba, 2015:2016), -c(1, dba_total_col(dba))]
-  adj_20b        <- sum(dDirMult(M=tda+0.1,n=tda,Rho=rho)*wts[year_to_idx(2015):year_to_idx(2016)])
-  V2 <- V[,-11]; V2[,10] <- V2[,10]+V[,11]
-  # V2<-V2*1e6
-  sum(dDirMult(M=V2,n=tda,Rho=rho)*wts[year_to_idx(2015):year_to_idx(2016)]) - adj_20b
-  }
+  dba      <- DeathByAge[[st]]
+  yrs      <- as.integer(dba[, 1])
+  yrs      <- tail(sort(yrs[yrs %in% as.integer(names(wts))]), 2)
+  tda      <- dba[dba_year_rows(dba, yrs), -c(1, dba_total_col(dba)), drop = FALSE]
+  wt_slice <- wts[as.character(yrs)]
+  Vy       <- V[year_to_idx(yrs), , drop = FALSE]
+  V2       <- Vy[, -11, drop = FALSE]; V2[, 10] <- V2[, 10] + Vy[, 11]
+  adj_20b  <- sum(dDirMult(M=tda+0.1, n=tda, Rho=rho) * wt_slice)
+  sum(dDirMult(M=V2, n=tda, Rho=rho) * wt_slice) - adj_20b
+}
 
 #' Mortality Risk Group Distribution 1999-2014
 #' Motivation: dirichlet-multinomial, multinomial data with additional non-sampling biases

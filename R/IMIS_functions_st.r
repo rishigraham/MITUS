@@ -245,12 +245,12 @@ llikelihoodZ_st <-  function(samp_i,ParMatrix,loc, TB=1, calib_end_year=2021) { 
     v23b  <- M[year_to_idx(2010),29]
     addlik <- homeless_10_lLik_st(V=v23b,st=st); addlik
     lLik <- lLik + addlik
-    #' #' Total DEATHS 2016
-    v20a  <- sum(M[year_to_idx(2016),121:131])
+    #' #' Total all-cause DEATHS (lLik picks the most recent DeathByAge year)
+    v20a  <- M[, 121:131]
     addlik <- dth_tot_lLik_st(V=v20a,st=st); addlik
     lLik <- lLik + addlik
-    #' #' #' #' Total DEATHS 2015-2016 BY AGE
-    v20b  <- M[year_to_idx(2015):year_to_idx(2016),121:131]
+    #' #' #' #' Total all-cause DEATHS BY AGE (lLik picks the most recent 2 DeathByAge years)
+    v20b  <- M[, 121:131]
     addlik <- tot_dth_age_lLik_st(V=v20b,st=st); addlik
     lLik <- lLik + addlik
     #' #' #' Mort_dist 2016 dirchlet
