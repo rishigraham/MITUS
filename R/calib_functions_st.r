@@ -9,6 +9,33 @@ idx_5yr_end<-c(49,54,59,64,70)   # 1998,2003,2008,2013,2019
 idx_5yr_start<-c(45,50,55,60,65) # 1994,1999,2004,2009,2014
 idx_decades<-c(11,21,31,41,51,61,70) # 1960,1970,1980,1990,2000,2010,2019
 
+# Accessors for the calibration data, keyed on the names each table carries.
+
+#' Columns of cases_nat_st_5yr holding the 5-year case counts
+#' (e.g. "X1996.2000".."X2016.2020"), oldest bucket first.
+#' @noRd
+nat_5yr_bucket_cols <- function(d) {
+  grep("^X[0-9]{4}\\.[0-9]{4}$", colnames(d), value = TRUE)
+}
+
+#' Age-group columns of cases_yr_ag_nat_st_5yr (e.g. "X0.4".."X85p"), youngest
+#' age group first.
+#' @noRd
+ag_5yr_cols <- function(d) {
+  grep("^X[0-9]", colnames(d), value = TRUE)
+}
+
+#' Rows of DeathByAge[[st]] for the given calendar years, NA where a year is
+#' absent. DeathByAge is an unnamed matrix with the year in column 1.
+#' @noRd
+dba_year_rows <- function(m, years) {
+  match(years, m[, 1])
+}
+
+#' Column of DeathByAge[[st]] holding deaths totalled across age groups.
+#' @noRd
+dba_total_col <- function(m) ncol(m)
+
 #'Total Diagnosed Cases 1953-2016
 #'Motivation: Normal, mean centered with CI = +/- 5% of the mean
 #'@name notif_tot_lLik_st
@@ -47,7 +74,7 @@ notif_decline_lLik_st <- function(V, st=st) {
 notif_fb_lLik_st <- function(V,st,rho=0.005) { # V = table of notifications by fb 1993-2016 (row=24 years, col=fb then us)
   notif_age_fb0     <- CalibDatCases[["cases_yr_ag_nat_st"]][[st]][,,"nusb"]
   notif_age_us0     <- CalibDatCases[["cases_yr_ag_nat_st"]][[st]][,,"usb"]
-  notif_fb      <- cbind(notif_age_fb0[,12],notif_age_us0[,12])
+  notif_fb      <- cbind(notif_age_fb0[,"total"],notif_age_us0[,"total"])
   adj_3         <- sum(dDirMult(M=notif_fb+0.01,n=notif_fb,Rho=rho)*wts[year_to_idx(1993):year_to_idx(2018)])
   #scale does not matter for dirichlet llikelihood
   (sum(dDirMult(M=V,n=notif_fb,Rho=rho)*wts[year_to_idx(1993):year_to_idx(2018)]) - adj_3)*2
@@ -56,8 +83,10 @@ notif_fb_lLik_st <- function(V,st,rho=0.005) { # V = table of notifications by f
 
 notif_fb_5yr_lLik_st <- function(V,st,rho=0.0005) { # V = table of notifications by fb 1993-2016 (row=24 years, col=fb then us)
   ### Read in the nativity stratified data
-  notif_age_fb0   <- CalibDatCases$cases_nat_st_5yr[CalibDatCases$cases_nat_st_5yr$State.Code==st & CalibDatCases$cases_nat_st_5yr$usb==0,4:8]
-  notif_age_us0   <- CalibDatCases$cases_nat_st_5yr[CalibDatCases$cases_nat_st_5yr$State.Code==st & CalibDatCases$cases_nat_st_5yr$usb==1,4:8]
+  cn              <- CalibDatCases$cases_nat_st_5yr
+  bkt             <- nat_5yr_bucket_cols(cn)
+  notif_age_fb0   <- cn[cn$State.Code==st & cn$usb==0,bkt]
+  notif_age_us0   <- cn[cn$State.Code==st & cn$usb==1,bkt]
   notif_fb      <- cbind(t(notif_age_fb0),t(notif_age_us0))
   adj_3         <- sum(dDirMult(M=notif_fb,n=notif_fb,Rho=rho)*wts[idx_5yr_end])
   V2<-matrix(0,5,2)
@@ -71,7 +100,8 @@ notif_fb_5yr_lLik_st <- function(V,st,rho=0.0005) { # V = table of notifications
 #'@param V vector of total notifications 1953-2014
 #'@return likelihood
 notif_fb_5yr_lik <- function(V,st=st) {
-  notif_fb   <- as.numeric(unlist(CalibDatCases$cases_nat_st_5yr[CalibDatCases$cases_nat_st_5yr$State.Code==st & CalibDatCases$cases_nat_st_5yr$usb==0,4:8]))
+  cn         <- CalibDatCases$cases_nat_st_5yr
+  notif_fb   <- as.numeric(unlist(cn[cn$State.Code==st & cn$usb==0,nat_5yr_bucket_cols(cn)]))
   adj_1         <- sum(dnorm(notif_fb,notif_fb,notif_fb*0.05/1.96,log=T)*wts[idx_5yr_end])
   V2<-rep(0,5)
   V2[1]<-sum(V[1:5]);V2[2]<-sum(V[6:10]);V2[3]<-sum(V[11:15]); V2[4]<-sum(V[16:20]); V2[5]<-sum(V[21:25])
@@ -84,7 +114,8 @@ notif_fb_5yr_lik <- function(V,st=st) {
 #'@return likelihood
 
 notif_us_5yr_lik <- function(V,st=st) {
-  notif_us   <- as.numeric(unlist(CalibDatCases$cases_nat_st_5yr[CalibDatCases$cases_nat_st_5yr$State.Code==st & CalibDatCases$cases_nat_st_5yr$usb==1,4:8]))
+  cn         <- CalibDatCases$cases_nat_st_5yr
+  notif_us   <- as.numeric(unlist(cn[cn$State.Code==st & cn$usb==1,nat_5yr_bucket_cols(cn)]))
   adj_1         <- sum(dnorm(notif_us,notif_us,notif_us*0.05/1.96,log=T)*wts[idx_5yr_end])
   V2<-rep(0,5)
   V2[1]<-sum(V[1:5]);V2[2]<-sum(V[6:10]);V2[3]<-sum(V[11:15]); V2[4]<-sum(V[16:20]); V2[5]<-sum(V[21:25])
@@ -95,8 +126,11 @@ notif_us_5yr_lik <- function(V,st=st) {
 ### ### ### CASES FB DISTRIBUTION SLOPES OVER PAST 5 year  ### ### ### ### ### ###
 notif_fbus_slp_lLik_st <- function(V,st) {
   # notif_fbus_slp5     <- as.numeric(CalibDatCases[["case_change_5"]][st,2:3])
-  notif_age_fb0   <- CalibDatCases$cases_nat_st_5yr[CalibDatCases$cases_nat_st_5yr$State.Code==st & CalibDatCases$cases_nat_st_5yr$usb==0,7:8]
-  notif_age_us0   <- CalibDatCases$cases_nat_st_5yr[CalibDatCases$cases_nat_st_5yr$State.Code==st & CalibDatCases$cases_nat_st_5yr$usb==1,7:8]
+  cn              <- CalibDatCases$cases_nat_st_5yr
+  ### slope is taken across the two most recent 5-year buckets
+  last2           <- tail(nat_5yr_bucket_cols(cn), 2)
+  notif_age_fb0   <- cn[cn$State.Code==st & cn$usb==0,last2]
+  notif_age_us0   <- cn[cn$State.Code==st & cn$usb==1,last2]
   tot_case_nat<-cbind(t(notif_age_fb0),t(notif_age_us0))
   #calculate the slopes
   notif_fbus_slp5<-apply(log(tot_case_nat),2,function(x) lm(x~I(1:2))$coef[2])
@@ -131,7 +165,8 @@ notif_fbus_slp_lLik_st <- function(V,st) {
 # Motivation: dirichlet-multinomial, multinomial data with additional non-sampling biases
 notif_age_us_5yr_lLik_st <- function(V,st,rho=0.1) { # V = table of us notifications by age 1993-2016 (row=24 years, col=11 ages)
   ### Read in the age and nativity stratified data
-  notif_age_us_5yr     <- as.data.frame(CalibDatCases$cases_yr_ag_nat_st_5yr[[st]][CalibDat$cases_yr_ag_nat_st_5yr[[st]][,4]==1,5:14])
+  ag5                  <- CalibDatCases$cases_yr_ag_nat_st_5yr[[st]]
+  notif_age_us_5yr     <- as.data.frame(ag5[ag5[,"usb"]==1,ag_5yr_cols(ag5)])
   ### Format the model estimates to match the calibration data
   V2 <- V[,-11]; V2[,10] <- V2[,10]+V[,11]
   V3<-matrix(0,5,10)
@@ -142,7 +177,8 @@ notif_age_us_5yr_lLik_st <- function(V,st,rho=0.1) { # V = table of us notificat
     tot_lik <- 0; adj_2a <-0
     ### If data is missing we need to create a single new bucket for these data and estimates
     ### Read in the total US cases to use as a total
-    notif_age_us0   <- CalibDatCases$cases_nat_st_5yr[CalibDatCases$cases_nat_st_5yr$State.Code==st & CalibDatCases$cases_nat_st_5yr$usb==1,4:8]
+    cn              <- CalibDatCases$cases_nat_st_5yr
+    notif_age_us0   <- cn[cn$State.Code==st & cn$usb==1,nat_5yr_bucket_cols(cn)]
     for (i in 1:nrow(notif_age_us_5yr)){
       print(i)
       ### Check that this row has an NA
@@ -181,7 +217,8 @@ notif_age_us_5yr_lLik_st <- function(V,st,rho=0.1) { # V = table of us notificat
 # Motivation: dirichlet-multinomial, multinomial data with additional non-sampling biases
 notif_age_nus_5yr_lLik_st <- function(V,st,rho=0.1) { # V = table of us notifications by age 1993-2016 (row=24 years, col=11 ages)
   ### Read in the age and nativity stratified data
-  notif_age_nus_5yr     <- as.data.frame(CalibDatCases$cases_yr_ag_nat_st_5yr[[st]][CalibDat$cases_yr_ag_nat_st_5yr[[st]][,4]==0,5:14])
+  ag5                   <- CalibDatCases$cases_yr_ag_nat_st_5yr[[st]]
+  notif_age_nus_5yr     <- as.data.frame(ag5[ag5[,"usb"]==0,ag_5yr_cols(ag5)])
   ### Format the model estimates to match the calibration data
   V2 <- V[,-11]; V2[,10] <- V2[,10]+V[,11]
   V3<-matrix(0,5,10)
@@ -192,9 +229,9 @@ notif_age_nus_5yr_lLik_st <- function(V,st,rho=0.1) { # V = table of us notifica
     tot_lik <- 0; adj_2a <-0
     ### If data is missing we need to create a single new bucket for these data and estimates
     ### Read in the total US cases to use as a total
-    notif_age_nus0   <- CalibDatCases$cases_nat_st_5yr[CalibDatCases$cases_nat_st_5yr$State.Code==st & CalibDatCases$cases_nat_st_5yr$usb==0,4:8]
+    cn               <- CalibDatCases$cases_nat_st_5yr
+    notif_age_nus0   <- cn[cn$State.Code==st & cn$usb==0,nat_5yr_bucket_cols(cn)]
     for (i in 1:nrow(notif_age_nus_5yr)){
-      print(i)
       ### Check that this row has an NA
       if (sum(is.na(notif_age_nus_5yr[i,])) > 0){
         ### Calibration data
@@ -229,8 +266,10 @@ notif_age_nus_5yr_lLik_st <- function(V,st,rho=0.1) { # V = table of us notifica
 ##smoothed estimates
 notif_hr_lLik_st <- function(V,st) { # V = table of notifications by tx history (row=97:16, col=n then e)
   sid <- get_stateID()
-  notif_hr_5yr<-CalibDatCases[["hr_cases_sm"]][which(CalibDatCases[["hr_cases_sm"]][,1]==sid[st,1]),7]*
-                CalibDatCases[["hr_cases_sm"]][which(CalibDatCases[["hr_cases_sm"]][,1]==sid[st,1]),3]
+  hr  <- CalibDatCases[["hr_cases_sm"]]
+  rws <- which(hr[,"st"]==sid[st,1])
+  ### smoothed high-risk fraction x total cases, per 5-year bucket
+  notif_hr_5yr <- hr[rws,"fract_sm"] * hr[rws,"ss"]
   # notif_5yr          <-    c(sum(CalibDatCases[["cases_yr_st"]][[st]][2:6,2]),
   #                             sum(CalibDatCases[["cases_yr_st"]][[st]][7:11,2]),
   #                             sum(CalibDatCases[["cases_yr_st"]][[st]][12:16,2]),
@@ -245,7 +284,7 @@ notif_hr_lLik_st <- function(V,st) { # V = table of notifications by tx history 
 #'@param V distribution of recent and not recent transmission
 #'@return likelihood
 recent_trans_dist_lLik_st  <- function(V,st) {
-  rct_trans_dist        <- CalibDat[["rct_cases_sm"]][st,5]
+  rct_trans_dist        <- CalibDat[["rct_cases_sm"]][st,"fract_sm"]
   adj_13          <- dbeta(rct_trans_dist,rct_trans_dist*1000,(1-rct_trans_dist)*1000,log=T)
   dbeta(rct_trans_dist,V[1]*1000,V[2]*1000,log=T)  - adj_13
 }
@@ -254,12 +293,14 @@ recent_trans_dist_lLik_st  <- function(V,st) {
 # Motivation: should be a normal distribution because it is based on a model result
 notif_fb_rec_lLik_st<-function(V,st){
   sid <- get_stateID()
-  notif_rec<-CalibDatState[["rt_fb_cases_sm"]][which(CalibDatState[["rt_fb_cases_sm"]][,1]==sid[st,1]),9]
-  notif_fb          <-  rbind(sum(CalibDatState[["cases_yr_ag_nat_st"]][[st]][2:6,12,"nusb"]),
-                              sum(CalibDatState[["cases_yr_ag_nat_st"]][[st]][7:11,12,"nusb"]),
-                              sum(CalibDatState[["cases_yr_ag_nat_st"]][[st]][12:16,12,"nusb"]),
-                              sum(CalibDatState[["cases_yr_ag_nat_st"]][[st]][17:21,12,"nusb"]),
-                              sum(CalibDatState[["cases_yr_ag_nat_st"]][[st]][22:26,12,"nusb"]))
+  rt  <- CalibDatState[["rt_fb_cases_sm"]]
+  notif_rec<-rt[which(rt[,"st"]==sid[st,1]),"p_recent"]
+  cases_ag_nat <- CalibDatState[["cases_yr_ag_nat_st"]][[st]]
+  notif_fb          <-  rbind(sum(cases_ag_nat[2:6,"total","nusb"]),
+                              sum(cases_ag_nat[7:11,"total","nusb"]),
+                              sum(cases_ag_nat[12:16,"total","nusb"]),
+                              sum(cases_ag_nat[17:21,"total","nusb"]),
+                              sum(cases_ag_nat[22:26,"total","nusb"]))
   notif_fb_rec      <- notif_rec*notif_fb
   adj_6           <- sum(dnorm(notif_fb_rec,notif_fb_rec,notif_fb_rec*0.1/1.96,log=T)*wts[idx_5yr_start])
   sum(dnorm(notif_fb_rec,V*1e6,notif_fb_rec*0.1/1.96,log=T)*wts[idx_5yr_start]) - adj_6
@@ -306,7 +347,8 @@ tltbi_tot_lLik_st   <- function(V,st) { # V = total TLTBI inits in 2002 (scalar)
 
 ### ### ### DISTRIBUTION OF LTBI TREATMENT INITS 2002  ### ### ### ### ### ###  D
 tltbi_dist_lLik_st  <- function(V) {
-  TLTBI_dist       <- CalibDatState[["TLTBI_dist"]][1:2]
+  ### fractions of LTBI treatment inits that are foreign-born / high-risk
+  TLTBI_dist       <- CalibDatState[["TLTBI_dist"]][c("FB","HR")]
   adj_13           <- sum( dbeta(TLTBI_dist,TLTBI_dist*100,(1-TLTBI_dist)*100,log=T) )# V = dist TLTBI inits in 2002 (vector fraction FB, HR, HV in 2002)
   sum( dbeta(TLTBI_dist,V*100,(1-V)*100,log=T) ) - adj_13  }
 
@@ -386,7 +428,7 @@ tot_pop_yr_fb_lLik_st <- function(V,st) { # V = total pop (rows=year, cols=us, f
   tot_pop_yr      <- CalibDatState[["pop_50_10"]][[st]]
   tot_pop_yr_fb   <- tot_pop_yr[tot_pop_yr[,2]==0,]
   #get 2019 population
-  pop_ag_11_190  <- CalibDatState[["pop_00_19"]][[st]][,c(1,2,22)]
+  pop_ag_11_190  <- CalibDatState[["pop_00_19"]][[st]][,c("age_group","usb","2019")]
   #get 2019 fb population
   pop_ag_11_19nus <-sum(pop_ag_11_190[pop_ag_11_190[,2]==0,3][-11])
   #append the foreign born population
@@ -416,7 +458,7 @@ tot_pop_yr_us_lLik_st <- function(V,st) {
   tot_pop_yr      <- CalibDatState[["pop_50_10"]][[st]]
   tot_pop_yr_us   <- tot_pop_yr[tot_pop_yr[,2]==1,]
   #get 2019 population
-  pop_ag_11_190  <- CalibDatState[["pop_00_19"]][[st]][,c(1,2,22)]
+  pop_ag_11_190  <- CalibDatState[["pop_00_19"]][[st]][,c("age_group","usb","2019")]
   #get 2019 fb population
   pop_ag_11_19us <-sum(pop_ag_11_190[pop_ag_11_190[,2]==1,3][-11])
   #append the foreign born population
@@ -428,7 +470,7 @@ tot_pop_yr_us_lLik_st <- function(V,st) {
 ### ### ### TOTAL POP AGE DISTRIBUTION 2017  ### ### ### ### ### ### D
 # Motivation: reported estimates represent pseudo-data for a multinomial likelihood, with ESS = 500
 tot_pop19_ag_fb_lLik_st <- function(V,st,ESS=500) { # V =  US pop in 2014 (row=11 ages, col= us, fb)
-  pop_ag_11_190  <- CalibDatState[["pop_00_19"]][[st]][,c(1,2,22)]
+  pop_ag_11_190  <- CalibDatState[["pop_00_19"]][[st]][,c("age_group","usb","2019")]
   pop_ag_11_19us <-pop_ag_11_190[pop_ag_11_190[,2]==1,3][-11]
   pop_ag_11_19nus <-pop_ag_11_190[pop_ag_11_190[,2]==0,3][-11]
 
@@ -442,7 +484,7 @@ tot_pop19_ag_fb_lLik_st <- function(V,st,ESS=500) { # V =  US pop in 2014 (row=1
 ### ### ### TOTAL POP AGE DISTRIBUTION 2017  ### ### ### ### ### ### D
 # Motivation: reported estimates represent pseudo-data for a multinomial likelihood, with ESS = 500
 tot_pop1719_ag_fb_lLik_st <- function(V,st,ESS=500) { # V =  US pop in 2014 (row=11 ages, col= us, fb)
-  pop_ag_11_190  <- CalibDatState[["pop_00_19"]][[st]][,c(1,2,20:22)]
+  pop_ag_11_190  <- CalibDatState[["pop_00_19"]][[st]][,c("age_group","usb","2017","2018","2019")]
   pop_ag_11_19us <- rowSums(pop_ag_11_190[pop_ag_11_190[,2]==1,3:5])[-11]
   #top code at 75p
   # pop_ag_11_19us[9] <- pop_ag_11_19us[9] + pop_ag_11_19us[10]
@@ -463,7 +505,8 @@ tot_pop1719_ag_fb_lLik_st <- function(V,st,ESS=500) { # V =  US pop in 2014 (row
 #'@param V
 #'@return likelihood
 dth_tot_lLik_st <- function(V,st) {
-  ST_deaths_tot <- DeathByAge[[st]][48, 12]
+  dba           <- DeathByAge[[st]]
+  ST_deaths_tot <- dba[dba_year_rows(dba, 2016), dba_total_col(dba)]
   adj_20a         <- sum(dnorm(ST_deaths_tot,ST_deaths_tot,ST_deaths_tot*0.1/1.96,log=T)*wts[year_to_idx(2016)])
   sum(dnorm(ST_deaths_tot,V*1e6,ST_deaths_tot*0.1/1.96,log=T)*wts[year_to_idx(2016)]) - adj_20a
 }
@@ -474,7 +517,8 @@ dth_tot_lLik_st <- function(V,st) {
 #'@param rho correlation parameter
 #'@return likelihood
 tot_dth_age_lLik_st <- function(V,st,rho=0.01) {
-  tda <- DeathByAge[[st]][47:48,-c(1,12)]
+  dba <- DeathByAge[[st]]
+  tda <- dba[dba_year_rows(dba, 2015:2016), -c(1, dba_total_col(dba))]
   adj_20b        <- sum(dDirMult(M=tda+0.1,n=tda,Rho=rho)*wts[year_to_idx(2015):year_to_idx(2016)])
   V2 <- V[,-11]; V2[,10] <- V2[,10]+V[,11]
   # V2<-V2*1e6
