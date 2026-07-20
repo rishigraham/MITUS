@@ -21,8 +21,9 @@ notif_tot_lLik_st <- function(V,st) { # V = simulator NOTIF_ALL+NOTIF_MORT_ALL, 
   keep      <- years_all %in% as.integer(names(wts))
   years     <- years_all[keep]
   notif_tot <- as.numeric(raw[keep, "cases"])
-  wts2      <- wts; wts2[length(wts2)] <- wts2[length(wts2)]*2
-  wt_slice  <- wts2[as.character(years)]
+  wt_slice  <- wts[as.character(years)]
+  ### the most recent year of data carries double weight
+  wt_slice[length(wt_slice)] <- wt_slice[length(wt_slice)]*2
   V_slice   <- V[year_to_idx(years)]
   ok        <- !is.na(notif_tot) & notif_tot != 0
   adj_1 <- sum((dnorm(notif_tot, notif_tot, notif_tot*0.1/1.96, log=T) * wt_slice)[ok])

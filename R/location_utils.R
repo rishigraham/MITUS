@@ -25,6 +25,38 @@ year_month_to_idx<-function(year,month,base_year=1950){
   (year-base_year)*12+month
 }
 
+#' Importance weights used to weight calibration targets by year.
+#'
+#' Returns a vector of per-year weights spanning \code{base_year:last_year},
+#' named by calendar year. Weights follow a logistic curve rising from
+#' \code{floor_val} at \code{base_year} to \code{ramp_end_val + floor_val} at
+#' \code{ramp_end}, so recent years carry more weight in the objective.
+#'
+#'@param last_year Last calendar year covered by the weights
+#'@param base_year First calendar year covered; the model base year
+#'@param ramp_start,ramp_end Years over which the logistic curve rises
+#'@param ramp_end_val Curve value attained at \code{ramp_end}
+#'@param floor_val Constant added to every weight
+#'@return Named numeric vector of length \code{last_year - base_year + 1}
+#'@noRd
+make_impt_weights <- function(last_year    = 2019,
+                              base_year    = 1950,
+                              ramp_start   = 2000,
+                              ramp_end     = 2019,
+                              ramp_end_val = 0.95,
+                              floor_val    = 0.05) {
+  if (last_year < base_year) {
+    stop("last_year (", last_year, ") must be >= base_year (", base_year, ")")
+  }
+  z    <- log(1/0.005 - 1)
+  step <- (2*z)/(ramp_end - ramp_start)
+  from <- -z*(1 + 2*(ramp_start - base_year)/(ramp_end - ramp_start))
+  yrs  <- base_year:last_year
+  wts  <- as.numeric(ramp_end_val)/(1 + exp(-(from + (yrs - base_year)*step))) + floor_val
+  names(wts) <- yrs
+  wts
+}
+
 #' Find a location-specific data file
 #'
 #' Searches for RDS files matching {loc}_{filetype}[_.]*.rds. When data_dir

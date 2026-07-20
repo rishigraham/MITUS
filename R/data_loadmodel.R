@@ -2,8 +2,14 @@
 #'@name model_load
 #'@param loc two letter postal abbreviation for states; US for national
 #'@param data_dir optional external data directory to search before package inst/
+#'@param last_weight_year last calendar year covered by the calibration
+#'  importance weights \code{wts}. Likelihoods that take their year window from
+#'  the calibration data use only the data years present in \code{names(wts)},
+#'  so this sets the most recent year of data those targets can use. It should
+#'  not exceed the \code{calib_end_year} used for calibration, which bounds the
+#'  years available in the simulator output.
 #'@return void
-model_load<-function(loc="US",data_dir=NULL){
+model_load<-function(loc="US",data_dir=NULL,last_weight_year=2019){
 #' add loc as a global variable
 # loc<<-loc
   library(mnormt)
@@ -79,13 +85,7 @@ if (loc=="US"){
   #last input change was to update the RR active TB by age in immigrants
 }
 if (loc=="US"){
-  LgtCurveY2 <- function(StYr,Endyr,EndVal) { z <- log(1/0.005-1)
-  zz  <- seq(-z*(1+2*(StYr-1950)/(Endyr-StYr)),z*(1+2*(2019-Endyr)/(Endyr-StYr)),by=(2*z)/(Endyr-StYr))
-  zz  <- as.numeric(EndVal)/(1+exp(-zz));    zz  }
-  ImptWeights <- LgtCurveY2(2000,2019,0.95)+0.05
-  names(ImptWeights) <- 1950:2019
-
-  wts <<- ImptWeights
+  wts <<- make_impt_weights(last_year=last_weight_year)
   P  <<- ParamInit[,1]
   names(P) <<- rownames(ParamInit)
 
@@ -95,15 +95,7 @@ if (loc=="US"){
   idZ1 <<- ParamInitZ[,4]==1
   idZ2 <<- ParamInitZ[,4]==2
 } else {
-  LgtCurveY2 <- function(StYr,Endyr,EndVal) { z <- log(1/0.005-1)
-  zz  <- seq(-z*(1+2*(StYr-1950)/(Endyr-StYr)),z*(1+2*(2019-Endyr)/(Endyr-StYr)),by=(2*z)/(Endyr-StYr))
-  zz  <- as.numeric(EndVal)/(1+exp(-zz));    zz  }
-
-  ImptWeights <- LgtCurveY2(2000,2019,0.95)+0.05
-  names(ImptWeights) <- 1950:2019
-  wts <<- ImptWeights
-  W <- wts[year_to_idx(1993):year_to_idx(2018)];  W["2016"] <- 4
-  wtZ <<-W
+  wts <<- make_impt_weights(last_year=last_weight_year)
 
   #creation of background parameters
   #elements of P will be replaced from either the StartVals in the case

@@ -4,10 +4,19 @@
 \alias{model_load}
 \title{loads data for the geography of interest}
 \usage{
-model_load(loc = "US")
+model_load(loc = "US", data_dir = NULL, last_weight_year = 2019)
 }
 \arguments{
 \item{loc}{two letter postal abbreviation for states; US for national}
+
+\item{data_dir}{optional external data directory to search before package inst/}
+
+\item{last_weight_year}{last calendar year covered by the calibration
+importance weights \code{wts}. Likelihoods that take their year window from
+the calibration data use only the data years present in \code{names(wts)},
+so this sets the most recent year of data those targets can use. It should
+not exceed the \code{calib_end_year} used for calibration, which bounds the
+years available in the simulator output.}
 }
 \value{
 void
