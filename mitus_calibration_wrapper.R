@@ -50,6 +50,8 @@
 #'
 #' Output:
 #'   - results.json with per-run outcomes, the MAP selection, and summary stats
+#'   - {LOC}_calibration_summary.json: the same content, as an output file that
+#'     ResilientSims uploads with the other outputs (results.json itself is not)
 #'   - optim_runs/: per-round optimizer results (Opt_*.rda) and per-run logs
 #'   - {LOC}_Optim_all_{n_runs}_{MMDD}.rds: parameters and -log posterior for
 #'     every run, in the layout the MITUS optim_data()/calib_plots_locs() tooling
@@ -461,6 +463,13 @@ main <- function() {
       model_years = c(1950, 2050)
     )
   }
+
+  # ResilientSims keeps only results$summary from results.json and uploads the
+  # files named in output_manifest, so the per-run table and MAP parameters are
+  # written to their own file, before the manifest is built, to reach the output store.
+  summary_file <- file.path(output_dir, paste0(loc, "_calibration_summary.json"))
+  write_json(results, summary_file, pretty = TRUE, auto_unbox = TRUE, digits = NA)
+  cat("\nWrote calibration summary:", basename(summary_file), "\n")
 
   # Create list of output files for ResilientSims
   output_files <- list.files(output_dir, recursive = TRUE, full.names = FALSE)
