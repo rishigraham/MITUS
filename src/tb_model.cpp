@@ -1295,7 +1295,7 @@ Rcpp::List cSim(
         temp=temp2=temp3=temp4=temp5=temp6=temp7=temp8=base_diag=0;
         ///// calculate the number of rows which are the number of populations screened
         int rows = sizeof(ttt_samp_distN)/sizeof(ttt_samp_distN[0]);
-        int cols = 16;
+        int cols = ttt_samp_dist.ncol();
         int agi = ttt_ag.size(); int nai = ttt_na.size();
 
                   // if (V0[ag][2][0][im][nm][rg][na] < 0.0){
@@ -1455,7 +1455,7 @@ Rcpp::List cSim(
                             ttt_diag_lf_vec[row] = std::max((std::min((ttt_test_lf_vec[row] * rTbP_norm * rr_ltbi),ttt_test_lf_vec[row])),0.0);
 
                             for (int tb = 0; tb < 4; tb++){
-                              VLtemp[ag][tb][tb][im][nm][rg][na] = std::max((ttt_frc_scrn * std::max(V0[ag][tb][0][im][nm][rg][na] , 0.0) * ttt_ltbi_acceptN),0.0);
+                              VLtemp[ag][tb][0][im][nm][rg][na] = std::max((ttt_frc_scrn * std::max(V0[ag][tb][0][im][nm][rg][na] , 0.0) * ttt_ltbi_acceptN),0.0);
                             }
                           }//END THE POP SCREEN LOOP
                           for (int k=0; k<rows; k++){
@@ -1686,8 +1686,8 @@ Rcpp::List cSim(
               for(int nm=0; nm<4 ; nm++) {
                 for(int rg=0; rg<2; rg++) {
                   for(int na=0; na<3; na++){
-                    Outputs[y][247+rg] += (V0[ag][0][lt][im][nm][rg][na]+V0[ag][1][lt][im][nm][rg][na]+V0[ag][2][lt][im][nm][rg][na])*VLkla[rg][na][ag]*NixTrans[s];
-                    Outputs[y][249+na] += (V0[ag][0][lt][im][nm][rg][na]+V0[ag][1][lt][im][nm][rg][na]+V0[ag][2][lt][im][nm][rg][na])*VLkla[rg][na][ag]*NixTrans[s];
+                    Outputs[y][247+rg] += (V0[ag][0][lt][im][nm][rg][na]+V0[ag][1][lt][im][nm][rg][na]+V0[ag][2][lt][im][nm][rg][na])*VLkla[rg][na == 0 ? 0 : 1][ag]*NixTrans[s];
+                    Outputs[y][249+na] += (V0[ag][0][lt][im][nm][rg][na]+V0[ag][1][lt][im][nm][rg][na]+V0[ag][2][lt][im][nm][rg][na])*VLkla[rg][na == 0 ? 0 : 1][ag]*NixTrans[s];
                   } } } } } }
         ////////////     CREATE YEARLY VALUES FROM THE MONTH ESTIMATE     ////////////
         for(int i=247; i<252; i++) { Outputs[y][i] = Outputs[y][i]*12; }
@@ -2251,8 +2251,8 @@ Rcpp::List cSim(
               for(int nm=0; nm<4 ; nm++) {
                 for(int rg=0; rg<2; rg++) {
                   for(int na=0; na<3; na++){
-                    OutputsInt[y][247+rg] += (V0[ag][0][lt][im][nm][rg][na]+V0[ag][1][lt][im][nm][rg][na]+V0[ag][2][lt][im][nm][rg][na])*VLkla[rg][na][ag]*NixTrans[s];
-                    OutputsInt[y][249+na] += (V0[ag][0][lt][im][nm][rg][na]+V0[ag][1][lt][im][nm][rg][na]+V0[ag][2][lt][im][nm][rg][na])*VLkla[rg][na][ag]*NixTrans[s];
+                    OutputsInt[y][247+rg] += (V0[ag][0][lt][im][nm][rg][na]+V0[ag][1][lt][im][nm][rg][na]+V0[ag][2][lt][im][nm][rg][na])*VLkla[rg][na == 0 ? 0 : 1][ag]*NixTrans[s];
+                    OutputsInt[y][249+na] += (V0[ag][0][lt][im][nm][rg][na]+V0[ag][1][lt][im][nm][rg][na]+V0[ag][2][lt][im][nm][rg][na])*VLkla[rg][na == 0 ? 0 : 1][ag]*NixTrans[s];
                   } } } } } }
         ////////////     CREATE YEARLY VALUES FROM THE MONTH ESTIMATE     ////////////
         for(int i=247; i<252; i++) { OutputsInt[y][i] = OutputsInt[y][i]*12; }

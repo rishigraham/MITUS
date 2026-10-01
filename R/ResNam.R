@@ -119,65 +119,29 @@ func_ResNam<-function(){
               paste("N_NUS",StatList[[5]],sep="_"),              # pop by nat and nm cat
               paste("TOTMORT"),
 
-              paste("N_NM1",StatList[[4]],sep="_"),
-              paste("N_NM2",StatList[[4]],sep="_"),
-              paste("N_NM3",StatList[[4]],sep="_"),
-              paste("N_NM4",StatList[[4]],sep="_"),
+              paste("N",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("%_0-4","NM1",StatList[[4]],sep="_"),
-              paste("%_0-4","NM2",StatList[[4]],sep="_"),
-              paste("0-4","NM3",StatList[[4]],sep="_"),
-              paste("0-4","NM4",StatList[[4]],sep="_"),
+              paste(rep(c("%_0-4","%_0-4","0-4","0-4"),4),rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("5-14","NM1",StatList[[4]],sep="_"),
-              paste("5-14","NM2",StatList[[4]],sep="_"),
-              paste("5-14","NM3",StatList[[4]],sep="_"),
-              paste("5-14","NM4",StatList[[4]],sep="_"),
+              paste("5-14",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("15-24","NM1",StatList[[4]],sep="_"),
-              paste("15-24","NM2",StatList[[4]],sep="_"),
-              paste("15-24","NM3",StatList[[4]],sep="_"),
-              paste("15-24","NM4",StatList[[4]],sep="_"),
+              paste("15-24",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("25-34","NM1",StatList[[4]],sep="_"),
-              paste("25-34","NM2",StatList[[4]],sep="_"),
-              paste("25-34","NM3",StatList[[4]],sep="_"),
-              paste("25-34","NM4",StatList[[4]],sep="_"),
+              paste("25-34",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("35-44","NM1",StatList[[4]],sep="_"),
-              paste("35-44","NM2",StatList[[4]],sep="_"),
-              paste("35-44","NM3",StatList[[4]],sep="_"),
-              paste("35-44","NM4",StatList[[4]],sep="_"),
+              paste("35-44",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("45-54","NM1",StatList[[4]],sep="_"),
-              paste("45-54","NM2",StatList[[4]],sep="_"),
-              paste("45-54","NM3",StatList[[4]],sep="_"),
-              paste("45-54","NM4",StatList[[4]],sep="_"),
+              paste("45-54",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("55-64","NM1",StatList[[4]],sep="_"),
-              paste("55-64","NM2",StatList[[4]],sep="_"),
-              paste("55-64","NM3",StatList[[4]],sep="_"),
-              paste("55-64","NM4",StatList[[4]],sep="_"),
+              paste("55-64",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("65-74","NM1",StatList[[4]],sep="_"),
-              paste("65-74","NM2",StatList[[4]],sep="_"),
-              paste("65-74","NM3",StatList[[4]],sep="_"),
-              paste("65-74","NM4",StatList[[4]],sep="_"),
+              paste("65-74",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("75-84","NM1",StatList[[4]],sep="_"),
-              paste("75-84","NM2",StatList[[4]],sep="_"),
-              paste("75-84","NM3",StatList[[4]],sep="_"),
-              paste("75-84","NM4",StatList[[4]],sep="_"),
+              paste("75-84",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("85-94","NM1",StatList[[4]],sep="_"),
-              paste("85-94","NM2",StatList[[4]],sep="_"),
-              paste("85-94","NM3",StatList[[4]],sep="_"),
-              paste("85-94","NM4",StatList[[4]],sep="_"),
+              paste("85-94",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
-              paste("95p","NM1",StatList[[4]],sep="_"),
-              paste("95p","NM2",StatList[[4]],sep="_"),
-              paste("95p","NM3",StatList[[4]],sep="_"),
-              paste("95p","NM4",StatList[[4]],sep="_"),
+              paste("95p",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
               paste("mort_rate",StatList[[1]],sep="_" ),
 
@@ -196,40 +160,22 @@ func_ResNam<-function(){
               paste("N_newinf_USB",StatList[[1]],sep="_" ),
               paste("N_newinf_NUSB",StatList[[1]],sep="_" ),
 
-              paste("0-24","US", "NM1",StatList[[4]],sep="_"),
-              paste("0-24","US", "NM2",StatList[[4]],sep="_"),
-              paste("0-24","US", "NM3",StatList[[4]],sep="_"),
-              paste("0-24","US", "NM4",StatList[[4]],sep="_"),
+              paste("0-24","US",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
 
-              paste("25-64","US","NM1",StatList[[4]],sep="_"),
-              paste("25-64","US","NM2",StatList[[4]],sep="_"),
-              paste("25-64","US","NM3",StatList[[4]],sep="_"),
-              paste("25-64","US","NM4",StatList[[4]],sep="_"),
+              paste("25-64","US",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
 
-              paste("65+","US","NM1",StatList[[4]],sep="_"),
-              paste("65+","US","NM2",StatList[[4]],sep="_"),
-              paste("65+","US","NM3",StatList[[4]],sep="_"),
-              paste("65+","US","NM4",StatList[[4]],sep="_"),
+              paste("65+","US",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
 
-              paste("0-24","NUS", "NM1",StatList[[4]],sep="_"),
-              paste("0-24","NUS", "NM2",StatList[[4]],sep="_"),
-              paste("0-24","NUS", "NM3",StatList[[4]],sep="_"),
-              paste("0-24","NUS", "NM4",StatList[[4]],sep="_"),
+              paste("0-24","NUS",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
 
-              paste("25-64","NUS","NM1",StatList[[4]],sep="_"),
-              paste("25-64","NUS","NM2",StatList[[4]],sep="_"),
-              paste("25-64","NUS","NM3",StatList[[4]],sep="_"),
-              paste("25-64","NUS","NM4",StatList[[4]],sep="_"),
+              paste("25-64","NUS",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
 
-              paste("65+","NUS","NM1",StatList[[4]],sep="_"),
-              paste("65+","NUS","NM2",StatList[[4]],sep="_"),
-              paste("65+","NUS","NM3",StatList[[4]],sep="_"),
-              paste("65+","NUS","NM4",StatList[[4]],sep="_"),
+              paste("65+","NUS",rep(c("NM1","NM2","NM3","NM4"),4),rep(StatList[[4]],each=4),sep="_"),
 
               paste("N_LtTxNaive"),
 
