@@ -458,7 +458,7 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
     )
   }
 
-  if(ttt_na == 99) {ttt_month <- c(9999)}
+  if(length(ttt_na) == 1 && ttt_na == 99) {ttt_month <- c(9999)}
 
   ###adjustments to the screening rates dependent on risk and TB status
   rrTestHr    <- PV["rrTestHr"] # RR of LTBI screening for HIV and HR as cmpared to general
