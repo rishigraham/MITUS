@@ -423,10 +423,25 @@ param_init <- function(PV,loc,Int1=0,Int2=0,Int3=0,Int4=0,Int5=0,Scen1=0,Scen2=0
   ttt_pop_scrn<-0
 
   if (ttt_list[[3]]!=0 & ttt_list[[4]]!=0){
-    # load(system.file("US/US_results_1.rda", package="MITUS"))
-    load(system.file(paste0(loc, "/", loc, "_results_1.rda"), package = "MITUS"))
+    # Base-case results for this location: prefer a {loc}_results_1.rds alongside
+    # the other location files in the external data dir; the .rda in inst/ is the
+    # convention the packaged state files follow.
+    results_file <- find_loc_file(loc, "results_1", data_dir = get_data_dir(),
+                                  required = FALSE)
+    if (!is.null(results_file)) {
+      out <- readRDS(results_file)
+    } else {
+      rda_file <- system.file(paste0(loc, "/", loc, "_results_1.rda"), package = "MITUS")
+      if (!nzchar(rda_file)) {
+        stop("No base-case results file (", loc, "_results_1) found for location '", loc,
+             "'; a targeted testing and treatment scenario requires one")
+      }
+      load(rda_file)
+    }
+    # one parameter set as a year x output matrix, whether stored as 2-D or 3-D
+    bc_results <- if (length(dim(out)) == 3) out[1,,] else out
     x<-create_ttt_dist(ttt_list = ttt_list,
-                       results = out[1,,],
+                       results = bc_results,
                        PV = PV)
     # if (ttt_list[[7]]!=1 | ttt_list[[8]]!=1){
     ttt_sampling_dist<-matrix(x[[1]],1,16)
