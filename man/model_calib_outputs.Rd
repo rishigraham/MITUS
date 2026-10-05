@@ -6,7 +6,13 @@
 CREATES INDIVIDUAL RDS FILES FOR OUTPUTS NECESSARY FOR
 THE TABBY2 COMPARISON TO RECENT DATA PLOTS}
 \usage{
-model_calib_outputs(loc = "US", bc.array, samp_i = 1, simp.date)
+model_calib_outputs(
+  loc = "US",
+  bc.array,
+  samp_i = 1,
+  simp.date,
+  out_dir = file.path("~/MITUS/inst", loc, "calibration_outputs")
+)
 }
 \arguments{
 \item{loc}{two character location code for the model location}
@@ -14,6 +20,9 @@ model_calib_outputs(loc = "US", bc.array, samp_i = 1, simp.date)
 \item{bc.array}{base case results array}
 
 \item{simp.date}{date to append to the files; should match the optim date}
+
+\item{out_dir}{directory the files are written to; defaults to the location's
+calibration_outputs folder in a ~/MITUS checkout}
 
 \item{samp.i}{which simulation to use (1:10)}
 }

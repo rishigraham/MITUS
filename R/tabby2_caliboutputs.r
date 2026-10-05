@@ -7,15 +7,19 @@
 #'@param bc.array base case results array
 #'@param samp.i which simulation to use (1:10)
 #'@param simp.date date to append to the files; should match the optim date
+#'@param out_dir directory the files are written to; defaults to the location's
+#'  calibration_outputs folder in a ~/MITUS checkout
 #'@export
 
-model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
+model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date,
+                              out_dir=file.path("~/MITUS/inst",loc,"calibration_outputs")){
+  dir.create(out_dir, showWarnings = FALSE, recursive = TRUE)
   res<-as.data.frame(bc.array[,])
   # colnames(res)<-func_ResNam()
   ############                   demographic targets                     ############
   ### ### ### ### ### ###   TOTAL POP EACH DECADE, BY US/FB   ### ### ### ### ### ###
   V  <- cbind(res[1:70,30], res[1:70,31]+res[1:70,32])
-  saveRDS(V,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_pop_yr_nat_",simp.date,".rds"))
+  saveRDS(V,file = file.path(out_dir, paste0(loc,"_pop_yr_nat_",simp.date,".rds")))
   ### ### ### ### ### ### TOTAL POP AGE DISTRIBUTION 2014  ### ### ### ### ### ###
   V  <- cbind(t(res[70,33:43]), t(res[70,44:54]))
   V1  <- V[-3,]
@@ -24,12 +28,12 @@ model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
   V2[3,] <- V2[3,]+V1[4,]
   V3 <- V2[-9,]
   V3[8,] <- V3[8,]+V2[9,]
-  saveRDS(V3,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_pop_ag_nat_",simp.date,".rds"))
+  saveRDS(V3,file = file.path(out_dir, paste0(loc,"_pop_ag_nat_",simp.date,".rds")))
 
   ### ### ### ### ### ###   TOTAL MORT EACH DECADE, BY US/FB  ### ### ### ### ### ###
   V  <- cbind(rowSums(res[1:70,255:265]), rowSums(res[1:70,266:276]))
   V1c <- rowSums(res[1:70,121:131])
-  saveRDS(V1c,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_mort_yr_nat_",simp.date,".rds"))
+  saveRDS(V1c,file = file.path(out_dir, paste0(loc,"_mort_yr_nat_",simp.date,".rds")))
 
   ### ### ### ### ### ###   TOTAL MORT AGE DISTRIBUTION 2014  ### ### ### ### ### ###
   V  <- cbind((res[67,255:265])+(res[67,266:276]))
@@ -39,7 +43,7 @@ model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
   V2[,3] <- V2[,3]+V1[,4]
   V3 <- V2[,-9]
   V3[,8] <- V3[,8]+V2[,9]
-  saveRDS(V3,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_mort_ag_nat_",simp.date,".rds"))
+  saveRDS(V3,file = file.path(out_dir, paste0(loc,"_mort_ag_nat_",simp.date,".rds")))
 
   ############                   tb specific targets                     ############
   # graph of total diagnosed cases
@@ -51,7 +55,7 @@ model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
   tot_cases[["allpop"]]<-V0
   tot_cases[["USBpop"]]<-V1
   tot_cases[["NUSBpop"]]<-V2
-  saveRDS(tot_cases,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_TBcases_",simp.date,".rds"))
+  saveRDS(tot_cases,file = file.path(out_dir, paste0(loc,"_TBcases_",simp.date,".rds")))
 
   #Percent of Total Cases Non-US Born Population
   V <- cbind(res[44:70,"NOTIF_US"]+res[44:70,"NOTIF_MORT_US"], #US born population
@@ -61,7 +65,7 @@ model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
   #Percent of Non-US Born Cases from Recent Immigrant Population
   V <- cbind(res[44:70,"NOTIF_F1"]+res[44:70,"NOTIF_MORT_F1"],res[44:70,"NOTIF_F2"]+res[44:70,"NOTIF_MORT_F2"])
   V <- V[,1]/rowSums(V)*100
-  saveRDS(V,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_percentRecentFBcases_",simp.date,".rds"))
+  saveRDS(V,file = file.path(out_dir, paste0(loc,"_percentRecentFBcases_",simp.date,".rds")))
 
   #Age distribution of Cases
   #0-24 yrs, 25-44 yrs, 45-64 yrs, 65+ yrs
@@ -70,12 +74,12 @@ model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
   V2<-matrix(NA,length(51:70),4)
   V2[,1]<-rowSums(V[,1:3]); V2[,2]<-rowSums(V[,4:5])
   V2[,3]<-rowSums(V[,6:8]); V2[,4]<-rowSums(V[,9:11])
-  saveRDS(V2*1e6,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_age_cases_4grps_",simp.date,".rds"))
+  saveRDS(V2*1e6,file = file.path(out_dir, paste0(loc,"_age_cases_4grps_",simp.date,".rds")))
   #Age distribution of Cases
   #all age bands
   V   <- (res[51:70,136:146]+res[51:70,189:199])
   V2  <- cbind(2000:2019,V)
-  saveRDS(V2,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_age_cases_tot_",simp.date,".rds"))
+  saveRDS(V2,file = file.path(out_dir, paste0(loc,"_age_cases_tot_",simp.date,".rds")))
 
   # Treatment Outcomes 1993-2014
   V   <- res[44:65,132:134]
@@ -86,7 +90,7 @@ model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
   txoutcomes[["discontinued tx"]]<-Vdisc
   txoutcomes[["died on tx"]]<-Vdead
 
-  saveRDS(txoutcomes,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_txOutcomes_",simp.date,".rds"))
+  saveRDS(txoutcomes,file = file.path(out_dir, paste0(loc,"_txOutcomes_",simp.date,".rds")))
 
 
   #LTBI Prevalance by Age in 2011, US born
@@ -103,7 +107,7 @@ model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
   V2 <- V1[2:9,1]/rowSums(V1[2:9,])*100
   # colnames(V2) <- c("LTBI", "No-LTBI")
 
-  saveRDS(V2,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_USB_LTBI_pct_",simp.date,".rds"))
+  saveRDS(V2,file = file.path(out_dir, paste0(loc,"_USB_LTBI_pct_",simp.date,".rds")))
 
   #LTBI Prevalance by Age in 2011, non-US born
   V  <- cbind(t(res[62,66:76]),t(res[62,44:54]-res[62,66:76]))
@@ -119,7 +123,7 @@ model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
   V1[9,] <- V[9,]+v1d[10,]+v1d[11,]
   V2 <- rep(NA,8)
   V2 <- V1[2:9,1]/rowSums(V1[2:9,])*100
-  saveRDS(V2,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_NUSB_LTBI_pct_",simp.date,".rds"))
+  saveRDS(V2,file = file.path(out_dir, paste0(loc,"_NUSB_LTBI_pct_",simp.date,".rds")))
 
   # Age Distribution of TB Deaths 1999-2018
 
@@ -127,11 +131,11 @@ model_calib_outputs<-function(loc="US",bc.array, samp_i=1,simp.date){
   V2 <- V[,-11]; V2[,10] <- V[,10]+V[,11]
   V3 <- colSums(V2)*1e6
 
-  saveRDS(V3,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_TBdeathsAge_",simp.date,".rds"))
+  saveRDS(V3,file = file.path(out_dir, paste0(loc,"_TBdeathsAge_",simp.date,".rds")))
 
   # total tb deaths over time 2004-2018
   V   <- rowSums(res[55:69,227:237])
-  saveRDS(V,file = paste0("~/MITUS/inst/",loc,"/calibration_outputs/",loc,"_TBdeaths_",simp.date,".rds"))
+  saveRDS(V,file = file.path(out_dir, paste0(loc,"_TBdeaths_",simp.date,".rds")))
 
 
 }
