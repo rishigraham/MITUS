@@ -56,8 +56,12 @@
 #'   - {LOC}_Optim_all_{n_runs}_{MMDD}.rds: parameters and -log posterior for
 #'     every run, in the layout the MITUS optim_data()/calib_plots_locs() tooling
 #'     expects
-#'   - {LOC}_Par_calibrated.rds, {LOC}_Par_optim_space.rds, bc.array, and the
-#'     Tabby2 calibration output files (mirrored into tabby2_outputs/)
+#'   - {LOC}_Param_{YYYY-MM-DD}.rds: the MAP in model space as two identical rows,
+#'     named so model_load() resolves it as the location's parameter file
+#'   - {LOC}_results_1.rds: base-case projection 1950-2050 for both rows
+#'     (parameter set x year x output), read by targeted testing scenarios
+#'   - {LOC}_Par_optim_space.rds: the MAP in the N(0,1) optimization space
+#'   - tabby2_outputs/: the Tabby2 calibration comparison files
 #'
 #' Expected Runtime:
 #'   - Validation mode (optimize=false): ~40 seconds
@@ -285,29 +289,32 @@ write_map_outputs <- function(map, loc, output_dir) {
   saveRDS(par_optim, file.path(output_dir, paste0(loc, "_Par_optim_space.rds")),
           version = 2)
 
-  # OutputsZint() takes parameter names from names(ParMatrix) whenever the matrix
-  # has a single row, which is NULL for a matrix and strips the names param_init()
-  # needs. A two-row matrix takes the colnames branch instead; samp_i=1 selects
-  # the MAP row.
+  # The MAP is stored as two identical rows: OutputsZint() takes parameter names
+  # from names(ParMatrix) whenever the matrix has a single row, which is NULL for
+  # a matrix and strips the names param_init() needs, and the Tabby2 scenario path
+  # simulates Par[1:2,]. The file name follows the {loc}_Param_{date} pattern that
+  # model_load() resolves, so a Configuration can carry it unchanged.
+  simp_date <- format(Sys.Date(), "%Y-%m-%d")
   ParMatrix <- matrix(par_model, nrow = 2, ncol = length(par_model), byrow = TRUE)
   colnames(ParMatrix) <- names(par_model)
-  saveRDS(ParMatrix, file.path(output_dir, paste0(loc, "_Par_calibrated.rds")),
-          version = 2)
+  param_file <- paste0(loc, "_Param_", simp_date, ".rds")
+  saveRDS(ParMatrix, file.path(output_dir, param_file), version = 2)
 
-  cat("\nRunning the model with the MAP parameters (1950-2050)...\n")
-  bc_array <- OutputsZint(samp_i = 1, ParMatrix = ParMatrix, loc = loc,
-                          startyr = 1950, endyr = 2050,
-                          prg_chng = def_prgchng(ParMatrix[1, ]),
-                          ttt_list = def_ttt())
-  saveRDS(bc_array, file.path(output_dir, paste0(loc, "_bc_array_calibrated.rds")),
-          version = 2)
+  # Base case for both rows as a parameter-set x year x output array: the
+  # {loc}_results_1 file that targeted testing scenarios read in param_init().
+  cat("\nRunning the base case with the MAP parameters (1950-2050)...\n")
+  bc_array <- OutputsInt(loc = loc, ParMatrix = ParMatrix, n_cores = 1,
+                         startyr = 1950, endyr = 2050,
+                         prg_chng = def_prgchng(ParMatrix[1, ]),
+                         ttt_list = def_ttt())
+  results_file <- paste0(loc, "_results_1.rds")
+  saveRDS(bc_array, file.path(output_dir, results_file), version = 2)
 
   # model_calib_outputs() writes to ~/MITUS/inst/{loc}/calibration_outputs; create
   # that path and mirror the files back into the ResilientSims output directory.
-  simp_date <- format(Sys.Date(), "%Y-%m-%d")
   tabby2_dir <- path.expand(file.path("~/MITUS/inst", loc, "calibration_outputs"))
   dir.create(tabby2_dir, showWarnings = FALSE, recursive = TRUE)
-  model_calib_outputs(loc = loc, bc.array = bc_array, samp_i = 1,
+  model_calib_outputs(loc = loc, bc.array = bc_array[1, , ], samp_i = 1,
                       simp.date = simp_date)
 
   mirror_dir <- file.path(output_dir, "tabby2_outputs")
@@ -316,7 +323,8 @@ write_map_outputs <- function(map, loc, output_dir) {
   file.copy(tabby2_files, mirror_dir, overwrite = TRUE)
   cat("Tabby2 calibration outputs generated:", length(tabby2_files), "files\n")
 
-  list(model_years = c(1950, 2050), tabby2_files = length(tabby2_files),
+  list(model_years = c(1950, 2050), param_file = param_file,
+       results_file = results_file, tabby2_files = length(tabby2_files),
        calibrated_parameters = as.list(par_model))
 }
 
