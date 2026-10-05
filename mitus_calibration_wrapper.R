@@ -310,17 +310,10 @@ write_map_outputs <- function(map, loc, output_dir) {
   results_file <- paste0(loc, "_results_1.rds")
   saveRDS(bc_array, file.path(output_dir, results_file), version = 2)
 
-  # model_calib_outputs() writes to ~/MITUS/inst/{loc}/calibration_outputs; create
-  # that path and mirror the files back into the ResilientSims output directory.
-  tabby2_dir <- path.expand(file.path("~/MITUS/inst", loc, "calibration_outputs"))
-  dir.create(tabby2_dir, showWarnings = FALSE, recursive = TRUE)
+  tabby2_dir <- file.path(output_dir, "tabby2_outputs")
   model_calib_outputs(loc = loc, bc.array = bc_array[1, , ], samp_i = 1,
-                      simp.date = simp_date)
-
-  mirror_dir <- file.path(output_dir, "tabby2_outputs")
-  dir.create(mirror_dir, showWarnings = FALSE, recursive = TRUE)
-  tabby2_files <- list.files(tabby2_dir, full.names = TRUE)
-  file.copy(tabby2_files, mirror_dir, overwrite = TRUE)
+                      simp.date = simp_date, out_dir = tabby2_dir)
+  tabby2_files <- list.files(tabby2_dir)
   cat("Tabby2 calibration outputs generated:", length(tabby2_files), "files\n")
 
   list(model_years = c(1950, 2050), param_file = param_file,
