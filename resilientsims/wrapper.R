@@ -31,6 +31,8 @@
 #'   install, model_load(), and the results.json/output manifest contract.
 #'   Step-specific code is sourced from this directory:
 #'     - calibration.R: multi-start optimization and the MAP output package
+#'     - scenarios.R: built-in and custom scenario runs
+#'     - tabby2_export.R: the {LOC}_tabby2_ui_data.json export for the hub
 #'
 #' Runtime Parameters (from JSON):
 #'   - loc: Location code (e.g., "CA", "NY", "US")
@@ -58,12 +60,15 @@
 #'     (parameter set x year x output), read by targeted testing scenarios
 #'   - {LOC}_Par_optim_space.rds: the MAP in the N(0,1) optimization space
 #'   - tabby2_outputs/: the Tabby2 calibration comparison files
+#'   - {LOC}_tabby2_ui_data.json: the built-in scenarios (base case, five
+#'     interventions, two sensitivity analyses) as the hub's v2 series payload
 #'
 #' Expected Runtime:
 #'   - Validation mode (optimize=false): ~40 seconds
 #'   - Each optimization run: ~6-11 hours for a state or sub-state location
 #'     (roughly 13,000 likelihood evaluations at ~2.3 seconds each)
-#'   - Full calibration: roughly ceiling(n_runs / n_parallel) x per-run time
+#'   - Full calibration: roughly ceiling(n_runs / n_parallel) x per-run time,
+#'     plus a few minutes for the MAP base case and the built-in scenarios
 #'   - Memory: ~430 MB for the loaded model plus at most ~230 MB per concurrent run
 #'
 #' === ENVIRONMENT VARIABLES ===
@@ -89,6 +94,8 @@ main <- function() {
   params_file <- Sys.getenv("SIMULATOR_RUNTIME_PARAMS_FILE", "")
 
   source(file.path(wrapper_dir(), "calibration.R"))
+  source(file.path(wrapper_dir(), "scenarios.R"))
+  source(file.path(wrapper_dir(), "tabby2_export.R"))
 
   cat("=== MITUS Calibration Wrapper ===\n")
   cat("Code directory:", code_dir, "\n")
@@ -201,6 +208,31 @@ main <- function() {
         list(error = conditionMessage(e))
       })
       results$map_outputs <- map_outputs
+
+      if (is.null(map_outputs$error)) {
+        results$scenario_outputs <- tryCatch({
+          ParMatrix <- readRDS(file.path(output_dir, map_outputs$param_file))
+          base_case <- readRDS(file.path(output_dir, map_outputs$results_file))
+          basis <- sprintf("MAP of %d-start calibration, %s", n_runs,
+                           format(Sys.Date(), "%Y-%m-%d"))
+          t0 <- Sys.time()
+          cat("\nRunning the", length(TABBY2_SCENARIOS), "built-in scenarios...\n")
+          raw <- run_builtin_scenarios(loc, ParMatrix, base_case = base_case,
+                                       n_parallel = n_parallel)
+          payload <- tabby2_ui_payload(loc, raw, basis)
+          json_file <- paste0(loc, "_tabby2_ui_data.json")
+          write_tabby2_ui_json(payload, file.path(output_dir, json_file))
+          elapsed <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
+          cat(sprintf("Wrote %s: %d series in %.0f s\n", json_file,
+                      length(payload$series), elapsed))
+          list(ui_data_file = json_file, scenarios = names(raw),
+               n_series = length(payload$series), parameter_sets = dim(raw[[1]])[1],
+               elapsed_seconds = round(elapsed, 1))
+        }, error = function(e) {
+          cat("\nERROR generating scenario outputs:\n", conditionMessage(e), "\n")
+          list(error = conditionMessage(e))
+        })
+      }
     }
 
   } else {
