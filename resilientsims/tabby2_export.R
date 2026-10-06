@@ -49,6 +49,10 @@ TABBY2_SCENARIO_GROUP <- c(
   intervention_4 = "interventions", intervention_5 = "interventions",
   scenario_2 = "analyses", scenario_3 = "analyses")
 
+TABBY2_SCENARIO_GROUPS <- c(interventions = "Modeled Scenarios",
+                            analyses = "Sensitivity Analyses",
+                            custom = "Custom Scenarios")
+
 #' TB treatment completions are not exported: cSim fills them as diagnoses x the
 #' monthly completion rate (TxVec[0], about 1/9) rather than the completion
 #' probability, so the column is a constant multiple of initiations.
@@ -163,32 +167,69 @@ scenario_series <- function(loc, loc_label, scenario_id, arr) {
   out
 }
 
-#' Scenario metadata entries for the ids present in `raw`.
+#' Scenario metadata entries for the built-in ids present in `raw`.
 scenario_meta <- function(ids) {
   setNames(lapply(ids, function(s) list(
     id = s, label = unname(TABBY2_SCENARIO_LABEL[s]), group = unname(TABBY2_SCENARIO_GROUP[s]),
     description = unname(TABBY2_SCENARIO_DESC[s]))), ids)
 }
 
+#' One-line description of a custom scenario from the fields that differ from
+#' the model defaults.
+describe_scenario <- function(spec, ParMatrix) {
+  parts <- character(0)
+  defaults <- def_prgchng(ParMatrix[1, ])
+  changed <- names(spec$prg_chng)[abs(spec$prg_chng - defaults) > 1e-9]
+  if (length(changed) > 0) {
+    parts <- c(parts, paste0("Care cascade: ", paste(sprintf("%s = %s", changed,
+      format(spec$prg_chng[changed], digits = 4)), collapse = ", ")))
+  }
+  if (spec$ttt_active) {
+    t <- spec$ttt_list
+    parts <- c(parts, sprintf(
+      "Targeted testing and treatment: %s, ages %s, %.4g million people, %.0f%% screened per year, %d-%d, rate ratios progression %.3g, mortality %.3g, LTBI prevalence %.3g",
+      t$NativityGrp, t$AgeGrp, t$NRiskGrp, 100 * t$FrcScrn, as.integer(t$StartYr),
+      as.integer(t$EndYr), t$RRprg, t$RRmu, t$RRPrev))
+  }
+  if (length(parts) == 0) "No changes from the base case." else paste(parts, collapse = ". ")
+}
+
+#' Scenario metadata entry for a custom scenario.
+custom_scenario_meta <- function(spec, ParMatrix) {
+  setNames(list(list(id = spec$id, label = spec$name, group = "custom",
+                     description = describe_scenario(spec, ParMatrix))), spec$id)
+}
+
 #' Assemble the v2 payload for one location from a named list of scenario arrays.
-tabby2_ui_payload <- function(loc, raw, basis, loc_label = location_label(loc)) {
+#' `scenarios` carries the metadata for those ids; `extra_meta` is appended to meta.
+tabby2_ui_payload <- function(loc, raw, basis, loc_label = location_label(loc),
+                              scenarios = scenario_meta(names(raw)), extra_meta = list()) {
   n_sets <- dim(raw[[1]])[1]
   series <- list()
   for (s in names(raw)) series <- c(series, scenario_series(loc, loc_label, s, raw[[s]]))
+  groups <- unique(vapply(scenarios, function(s) s$group, character(1)))
   list(
-    meta = list(
+    meta = c(list(
       generated = format(Sys.Date(), "%Y-%m-%d"), model = "MITUS", schema_version = 2,
       years = TABBY2_YEARS_OUT, summary_years = TABBY2_SUMMARY_YEARS,
       locations = list(list(code = loc, label = loc_label, parameter_sets = n_sets,
                             basis = basis)),
-      scenarios = scenario_meta(names(raw)),
-      scenario_groups = list(interventions = "Modeled Scenarios", analyses = "Sensitivity Analyses"),
+      scenarios = scenarios,
+      scenario_groups = as.list(TABBY2_SCENARIO_GROUPS[groups]),
       measure_groups = list(core = "Modelled Outcomes", services = "Counts of Services"),
       nativity = list(all = "Total", usb = "US-born", nusb = "Non-US-born"),
       age_groups = names(TABBY2_AGE_GROUPS),
       measures = TABBY2_MEASURES,
-      notes = TABBY2_NOTES),
+      notes = TABBY2_NOTES), extra_meta),
     series = series)
+}
+
+#' Payload for one custom scenario run: its series only, the parameter file it
+#' ran against as the basis, and the request echoed under meta$custom_scenario.
+custom_scenario_payload <- function(loc, spec, arr, param_file, ParMatrix) {
+  tabby2_ui_payload(loc, setNames(list(arr), spec$id), basis = param_file,
+                    scenarios = custom_scenario_meta(spec, ParMatrix),
+                    extra_meta = list(custom_scenario = c(list(name = spec$name), spec$inputs)))
 }
 
 write_tabby2_ui_json <- function(payload, file) {

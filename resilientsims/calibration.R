@@ -11,9 +11,8 @@
 #'   StartVal_st and each running the full BFGS/Nelder-Mead sequence of
 #'   optim_b_st(). Runs are executed in parallel across `n_parallel` workers. The
 #'   maximum a posteriori (MAP) parameter set -- the lowest -log posterior among
-#'   the runs' final rounds -- is then simulated by write_map_outputs(), which
-#'   writes the location's parameter file, base-case results, and the Tabby2
-#'   calibration comparison files.
+#'   the runs' final rounds -- is converted to model space by
+#'   write_map_parameters() and handed to the location package (package.R).
 
 #' Posterior values at or above this come from the -10^12 likelihood penalty,
 #' i.e. the run never reached a region where the model produced valid output.
@@ -216,43 +215,12 @@ run_calibration <- function(loc, samp_i, n_runs, n_parallel, n_cores, TB,
        n_usable = sum(usable))
 }
 
-#' Simulate the MAP parameter set and write the Tabby2 calibration outputs.
-write_map_outputs <- function(map, loc, output_dir) {
-  par_model <- optim_to_model_par(map$par)
-
+#' Save the MAP in optimization space and return it in model space as the
+#' two-row parameter matrix the location package and scenario runs use.
+write_map_parameters <- function(map, loc, output_dir) {
   par_optim <- matrix(map$par, nrow = 1,
                       dimnames = list(NULL, rownames(ParamInitZ)))
   saveRDS(par_optim, file.path(output_dir, paste0(loc, "_Par_optim_space.rds")),
           version = 2)
-
-  # The MAP is stored as two identical rows: OutputsZint() takes parameter names
-  # from names(ParMatrix) whenever the matrix has a single row, which is NULL for
-  # a matrix and strips the names param_init() needs, and the Tabby2 scenario path
-  # simulates Par[1:2,]. The file name follows the {loc}_Param_{date} pattern that
-  # model_load() resolves, so a Configuration can carry it unchanged.
-  simp_date <- format(Sys.Date(), "%Y-%m-%d")
-  ParMatrix <- matrix(par_model, nrow = 2, ncol = length(par_model), byrow = TRUE)
-  colnames(ParMatrix) <- names(par_model)
-  param_file <- paste0(loc, "_Param_", simp_date, ".rds")
-  saveRDS(ParMatrix, file.path(output_dir, param_file), version = 2)
-
-  # Base case for both rows as a parameter-set x year x output array: the
-  # {loc}_results_1 file that targeted testing scenarios read in param_init().
-  cat("\nRunning the base case with the MAP parameters (1950-2050)...\n")
-  bc_array <- OutputsInt(loc = loc, ParMatrix = ParMatrix, n_cores = 1,
-                         startyr = 1950, endyr = 2050,
-                         prg_chng = def_prgchng(ParMatrix[1, ]),
-                         ttt_list = def_ttt())
-  results_file <- paste0(loc, "_results_1.rds")
-  saveRDS(bc_array, file.path(output_dir, results_file), version = 2)
-
-  tabby2_dir <- file.path(output_dir, "tabby2_outputs")
-  model_calib_outputs(loc = loc, bc.array = bc_array[1, , ], samp_i = 1,
-                      simp.date = simp_date, out_dir = tabby2_dir)
-  tabby2_files <- list.files(tabby2_dir)
-  cat("Tabby2 calibration outputs generated:", length(tabby2_files), "files\n")
-
-  list(model_years = c(1950, 2050), param_file = param_file,
-       results_file = results_file, tabby2_files = length(tabby2_files),
-       calibrated_parameters = as.list(par_model))
+  par_matrix_from(optim_to_model_par(map$par))
 }
